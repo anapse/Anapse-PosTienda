@@ -35,7 +35,7 @@ service cloud.firestore {
     match /businesses/{businessId} {
       // Super admin, owner or members can read; or public can read if catalog is active
       allow get: if isSuperAdmin() || isBusinessMember(businessId) || resource.data.catalogActive == true;
-      allow list: if isSuperAdmin() || (isSignedIn() && resource.data.ownerId == request.auth.uid);
+      allow list: if isSignedIn();
       
       // Creating business requires authenticated user who sets themselves as owner
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
@@ -57,7 +57,7 @@ service cloud.firestore {
       match /products/{productId} {
         // Members can read all products; public can read active products for online catalog
         allow get: if isBusinessMember(businessId) || resource.data.active == true;
-        allow list: if isBusinessMember(businessId) || resource.data.active == true;
+        allow list: if true;
         allow create, update, delete: if isBusinessMember(businessId);
       }
 

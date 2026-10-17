@@ -32,7 +32,9 @@ import {
   ShieldCheck,
   Sparkles,
   CheckCircle,
-  Clock
+  Clock,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 function MainApp() {
@@ -44,6 +46,7 @@ function MainApp() {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('anapse_theme') as 'light' | 'dark') || 'light';
   });
+  const [publicTab, setPublicTab] = useState<'inicio' | 'planes' | 'servicios'>('inicio');
 
   const toggleTheme = () => {
     const next = theme === 'light' ? 'dark' : 'light';
@@ -92,147 +95,300 @@ function MainApp() {
 
   // Not logged in view
   if (!user) {
+    const isDark = theme === 'dark';
     return (
-      <div className="min-h-screen bg-stone-900 text-stone-100 flex flex-col justify-between selection:bg-emerald-600 selection:text-white">
+      <div className={`min-h-screen ${isDark ? 'bg-stone-950 text-stone-100' : 'bg-stone-50 text-stone-900'} flex flex-col justify-between selection:bg-emerald-600 selection:text-white`}>
         
-        {/* Top bar */}
-        <header className="p-4 sm:p-6 max-w-7xl mx-auto w-full flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-amber-400 text-emerald-950 flex items-center justify-center font-black text-2xl shadow-md">
-              A
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-xl text-white tracking-tight">Anapse PosTienda</span>
-                <span className="text-[10px] bg-amber-400 text-emerald-950 font-black px-2 py-0.5 rounded uppercase">
-                  Colombia
-                </span>
+        {/* Top bar & Navbar */}
+        <header className={`p-4 sm:px-8 sm:py-5 border-b ${isDark ? 'border-stone-800 bg-stone-900/80' : 'border-stone-200 bg-white/80'} backdrop-blur sticky top-0 z-30 shadow-xs`}>
+          <div className="max-w-7xl mx-auto w-full flex flex-col sm:flex-row items-center justify-between gap-4">
+            
+            <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => setPublicTab('inicio')}>
+              <div className="w-10 h-10 rounded-2xl bg-amber-400 text-emerald-950 flex items-center justify-center font-black text-2xl shadow-md">
+                A
               </div>
-              <p className="text-xs text-emerald-400">Punto de Venta, Caja e Inventario para Tiendas y Minimarkets</p>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className={`font-extrabold text-xl ${isDark ? 'text-white' : 'text-stone-900'} tracking-tight`}>Anapse PosTienda</span>
+                  <span className="text-[10px] bg-amber-400 text-emerald-950 font-black px-2 py-0.5 rounded uppercase">
+                    Colombia
+                  </span>
+                </div>
+                <p className={`text-xs ${isDark ? 'text-emerald-400' : 'text-emerald-700 font-medium'}`}>Punto de Venta, Caja e Inventario para Tiendas</p>
+              </div>
+            </div>
+
+            {/* Public Navbar Links */}
+            <nav className="flex items-center gap-1 sm:gap-2 bg-stone-800/10 p-1 rounded-2xl">
+              <button
+                onClick={() => setPublicTab('inicio')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+                  publicTab === 'inicio' 
+                    ? 'bg-emerald-700 text-white shadow-sm' 
+                    : isDark ? 'text-stone-300 hover:text-white hover:bg-stone-800' : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200'
+                }`}
+              >
+                Inicio
+              </button>
+              <button
+                onClick={() => setPublicTab('planes')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+                  publicTab === 'planes' 
+                    ? 'bg-emerald-700 text-white shadow-sm' 
+                    : isDark ? 'text-stone-300 hover:text-white hover:bg-stone-800' : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200'
+                }`}
+              >
+                Planes y Precios
+              </button>
+              <button
+                onClick={() => setPublicTab('servicios')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+                  publicTab === 'servicios' 
+                    ? 'bg-emerald-700 text-white shadow-sm' 
+                    : isDark ? 'text-stone-300 hover:text-white hover:bg-stone-800' : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200'
+                }`}
+              >
+                Servicios
+              </button>
+            </nav>
+
+            {/* Right Action & Theme Toggle */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={toggleTheme}
+                title={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+                className={`p-2.5 rounded-xl border transition ${
+                  isDark 
+                    ? 'bg-stone-900 border-stone-800 text-amber-300 hover:bg-stone-800' 
+                    : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-100 shadow-xs'
+                }`}
+              >
+                {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4 text-stone-800" />}
+              </button>
+
+              <button
+                onClick={async () => {
+                  setIsAuthLoading(true);
+                  try {
+                    await signInQuickDemo();
+                  } catch (e) {
+                    console.error(e);
+                  } finally {
+                    setIsAuthLoading(false);
+                  }
+                }}
+                disabled={isAuthLoading}
+                className="bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition active:scale-98"
+              >
+                Modo Prueba
+              </button>
             </div>
           </div>
         </header>
 
-        {/* Hero Body */}
-        <main className="max-w-4xl mx-auto px-4 py-6 sm:py-10 text-center space-y-6">
-          
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-900/60 border border-emerald-700 text-emerald-300 text-xs font-semibold">
-            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-            <span>Sistema Profesional con Pre-Aprobación y Contador de 30 Días</span>
-          </div>
+        {/* Main Body */}
+        <main className="max-w-7xl mx-auto px-4 sm:px-8 py-8 w-full flex-1">
+          {publicTab === 'inicio' && (
+            <div className="max-w-4xl mx-auto text-center space-y-8 py-4">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-900/60 border border-emerald-700 text-emerald-300 text-xs font-semibold">
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <span>Sistema Profesional con Pre-Aprobación y Contador de 30 Días</span>
+              </div>
 
-          <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
-            Administra tu tienda fácil y rápido en <span className="text-amber-400">Pesos Colombianos (COP)</span>
-          </h1>
+              <h1 className={`text-3xl sm:text-6xl font-black ${isDark ? 'text-white' : 'text-stone-900'} tracking-tight leading-tight`}>
+                Administra tu tienda fácil y rápido en <span className="text-amber-400">Pesos Colombianos (COP)</span>
+              </h1>
 
-          <p className="text-sm sm:text-base text-stone-300 max-w-2xl mx-auto leading-relaxed">
-            Diseñado 100% para el comercio colombiano: caja rápida para celular y computador, cobros con Nequi y Daviplata, el cuaderno de fiados digital con cobro por WhatsApp, control de inventario y catálogo online propio.
-          </p>
+              <p className={`text-sm sm:text-base ${isDark ? 'text-stone-300' : 'text-stone-600'} max-w-2xl mx-auto leading-relaxed`}>
+                Diseñado 100% para el comercio colombiano: caja rápida para celular y computador, cobros con Nequi y Daviplata, el cuaderno de fiados digital con cobro por WhatsApp, control de inventario y catálogo online propio.
+              </p>
 
-          {/* Commercial Plans Summary Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-3xl mx-auto text-left">
-            <div className="bg-stone-800/90 border border-emerald-500/60 rounded-2xl p-4 shadow-md relative">
-              <span className="text-[10px] bg-emerald-700 text-white font-black px-2 py-0.5 rounded-full uppercase">
-                Plan Tienda
-              </span>
-              <p className="text-xl font-black text-white mt-1.5">{formatCOP(40000)} <span className="text-[11px] font-normal text-stone-400">/ mes</span></p>
-              <p className="text-xs font-bold text-amber-300 mt-0.5">Hasta 500 productos</p>
-              <p className="text-[11px] text-stone-300 mt-1">Ventas, inventario, caja, clientes, fiado y reportes.</p>
+              {/* Commercial Plans Summary Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto text-left">
+                <div className={`${isDark ? 'bg-stone-900 border-emerald-500/60' : 'bg-white border-emerald-500/50 shadow-md'} border rounded-2xl p-5 relative`}>
+                  <span className="text-[10px] bg-emerald-700 text-white font-black px-2 py-0.5 rounded-full uppercase">
+                    Plan Tienda
+                  </span>
+                  <p className={`text-2xl font-black ${isDark ? 'text-white' : 'text-stone-900'} mt-2`}>{formatCOP(40000)} <span className="text-[11px] font-normal text-stone-400">/ mes</span></p>
+                  <p className="text-xs font-bold text-amber-500 mt-1">Hasta 500 productos</p>
+                  <p className={`text-xs ${isDark ? 'text-stone-300' : 'text-stone-600'} mt-1`}>Ventas, inventario, caja, clientes, fiado y reportes.</p>
+                </div>
+
+                <div className={`${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-stone-200 shadow-md'} border rounded-2xl p-5`}>
+                  <span className="text-[10px] bg-stone-700 text-stone-200 font-black px-2 py-0.5 rounded-full uppercase">
+                    Plan Almacén
+                  </span>
+                  <p className={`text-2xl font-black ${isDark ? 'text-white' : 'text-stone-900'} mt-2`}>{formatCOP(60000)} <span className="text-[11px] font-normal text-stone-400">/ mes</span></p>
+                  <p className="text-xs font-bold text-amber-500 mt-1">501 – 2.000 productos</p>
+                  <p className={`text-xs ${isDark ? 'text-stone-300' : 'text-stone-600'} mt-1`}>Más capacidad de catálogo y herramientas adicionales de inventario.</p>
+                </div>
+
+                <div className={`${isDark ? 'bg-stone-900 border-purple-500/50' : 'bg-white border-purple-500/40 shadow-md'} border rounded-2xl p-5`}>
+                  <span className="text-[10px] bg-purple-900 text-purple-200 font-black px-2 py-0.5 rounded-full uppercase">
+                    Plan Comercial
+                  </span>
+                  <p className={`text-2xl font-black ${isDark ? 'text-white' : 'text-stone-900'} mt-2`}>{formatCOP(90000)} <span className="text-[11px] font-normal text-stone-400">/ mes</span></p>
+                  <p className="text-xs font-bold text-amber-500 mt-1">Más de 2.000 productos</p>
+                  <p className={`text-xs ${isDark ? 'text-stone-300' : 'text-stone-600'} mt-1`}>Para catálogos grandes y administración más avanzada.</p>
+                </div>
+              </div>
+
+              <div className="text-xs text-stone-400 max-w-lg mx-auto flex items-center justify-center gap-2">
+                <Smartphone className="w-4 h-4 text-emerald-400" />
+                <span>Soporte oficial y activaciones: <strong>{SERVICE_WHATSAPP_NUMBER}</strong> (Solo WhatsApp)</span>
+              </div>
+
+              {/* Action Login Buttons */}
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto">
+                <button
+                  onClick={async () => {
+                    setIsAuthLoading(true);
+                    try {
+                      await signInWithGoogle();
+                    } catch (e) {
+                      console.error(e);
+                    } finally {
+                      setIsAuthLoading(false);
+                    }
+                  }}
+                  disabled={isAuthLoading}
+                  className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 bg-white hover:bg-stone-100 text-stone-900 font-bold px-6 py-3.5 rounded-2xl shadow-lg transition active:scale-98"
+                >
+                  <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+                  <span>Iniciar con Google</span>
+                </button>
+
+                <button
+                  onClick={async () => {
+                    setIsAuthLoading(true);
+                    try {
+                      await signInQuickDemo();
+                    } catch (e) {
+                      console.error(e);
+                    } finally {
+                      setIsAuthLoading(false);
+                    }
+                  }}
+                  disabled={isAuthLoading}
+                  className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-6 py-3.5 rounded-2xl shadow-lg transition active:scale-98"
+                >
+                  <span>Entrar en Modo Prueba</span>
+                  <ArrowRight className="w-4 h-4 text-emerald-300" />
+                </button>
+              </div>
+
+              {/* Feature highlights */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 text-left">
+                <div className={`p-5 rounded-2xl ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-stone-200 shadow-xs'}`}>
+                  <Receipt className="w-6 h-6 text-amber-500 mb-2" />
+                  <h3 className={`font-bold text-sm ${isDark ? 'text-white' : 'text-stone-900'}`}>Caja Rápida POS</h3>
+                  <p className="text-xs text-stone-400 mt-1">Cobros en efectivo, Nequi, Daviplata y ticket térmico.</p>
+                </div>
+
+                <div className={`p-5 rounded-2xl ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-stone-200 shadow-xs'}`}>
+                  <Users className="w-6 h-6 text-emerald-500 mb-2" />
+                  <h3 className={`font-bold text-sm ${isDark ? 'text-white' : 'text-stone-900'}`}>Cuaderno de Fiados</h3>
+                  <p className="text-xs text-stone-400 mt-1">Saldos pendientes, abonos y extractos a WhatsApp.</p>
+                </div>
+
+                <div className={`p-5 rounded-2xl ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-stone-200 shadow-xs'}`}>
+                  <Boxes className="w-6 h-6 text-teal-500 mb-2" />
+                  <h3 className={`font-bold text-sm ${isDark ? 'text-white' : 'text-stone-900'}`}>Stock y Balanza</h3>
+                  <p className="text-xs text-stone-400 mt-1">Kardex, alertas de agotados y venta por peso en balanza.</p>
+                </div>
+
+                <div className={`p-5 rounded-2xl ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-stone-200 shadow-xs'}`}>
+                  <Globe className="w-6 h-6 text-blue-500 mb-2" />
+                  <h3 className={`font-bold text-sm ${isDark ? 'text-white' : 'text-stone-900'}`} >Catálogo Online</h3>
+                  <p className="text-xs text-stone-400 mt-1">Pedidos directos a tu WhatsApp sin pagar comisiones.</p>
+                </div>
+              </div>
             </div>
+          )}
 
-            <div className="bg-stone-800/90 border border-stone-700 rounded-2xl p-4 shadow-md">
-              <span className="text-[10px] bg-stone-700 text-stone-200 font-black px-2 py-0.5 rounded-full uppercase">
-                Plan Almacén
-              </span>
-              <p className="text-xl font-black text-white mt-1.5">{formatCOP(60000)} <span className="text-[11px] font-normal text-stone-400">/ mes</span></p>
-              <p className="text-xs font-bold text-amber-300 mt-0.5">501 – 2.000 productos</p>
-              <p className="text-[11px] text-stone-300 mt-1">Más capacidad de catálogo y herramientas adicionales de inventario.</p>
+          {publicTab === 'planes' && (
+            <PlansServicesView />
+          )}
+
+          {publicTab === 'servicios' && (
+            <div className="max-w-4xl mx-auto space-y-8 py-4">
+              <div className="text-center space-y-3">
+                <span className="text-xs bg-emerald-700 text-white font-black px-3.5 py-1 rounded-full uppercase tracking-wider">
+                  Servicios Incluidos
+                </span>
+                <h2 className={`text-3xl sm:text-4xl font-black ${isDark ? 'text-white' : 'text-stone-900'}`}>
+                  Todo lo que tu negocio necesita en una sola aplicación
+                </h2>
+                <p className="text-sm text-stone-400 max-w-xl mx-auto">
+                  Diseñado para optimizar cada minuto en tu minimarket, tienda de barrio o almacén.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className={`p-6 rounded-3xl border ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-stone-200 shadow-md'} space-y-3`}>
+                  <div className="w-10 h-10 rounded-2xl bg-amber-400 text-emerald-950 flex items-center justify-center font-bold">
+                    <Receipt className="w-5 h-5" />
+                  </div>
+                  <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-stone-900'}`}>1. Punto de Venta (POS) y Caja Rápida</h3>
+                  <p className="text-xs text-stone-400 leading-relaxed">
+                    Registra ventas en segundos con lector de código de barras o búsqueda rápida. Maneja efectivo, transferencias Nequi y Daviplata, calcule devueltos automáticamente e imprime tickets en impresoras térmicas Bluetooth o USB.
+                  </p>
+                </div>
+
+                <div className={`p-6 rounded-3xl border ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-stone-200 shadow-md'} space-y-3`}>
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center font-bold">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-stone-900'}`}>2. Cuaderno de Fiados Digital</h3>
+                  <p className="text-xs text-stone-400 leading-relaxed">
+                    Olvídate de los cuadernos de papel. Lleva el control exacto de lo que fía cada cliente, registra abonos parciales y envía recordatorios de cobro profesionales directamente a su WhatsApp con un solo clic.
+                  </p>
+                </div>
+
+                <div className={`p-6 rounded-3xl border ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-stone-200 shadow-md'} space-y-3`}>
+                  <div className="w-10 h-10 rounded-2xl bg-teal-500 text-white flex items-center justify-center font-bold">
+                    <Boxes className="w-5 h-5" />
+                  </div>
+                  <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-stone-900'}`}>3. Control de Inventario y Balanza</h3>
+                  <p className="text-xs text-stone-400 leading-relaxed">
+                    Kardex detallado de entradas, salidas y mermas. Alertas automáticas de productos próximos a agotarse. Soporte para productos fraccionados y venta por peso en balanza digital.
+                  </p>
+                </div>
+
+                <div className={`p-6 rounded-3xl border ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-stone-200 shadow-md'} space-y-3`}>
+                  <div className="w-10 h-10 rounded-2xl bg-blue-500 text-white flex items-center justify-center font-bold">
+                    <Globe className="w-5 h-5" />
+                  </div>
+                  <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-stone-900'}`}>4. Catálogo Online con Enlace Propio</h3>
+                  <p className="text-xs text-stone-400 leading-relaxed">
+                    Publica tu tienda en internet con un enlace personalizado para que tus vecinos y clientes habituales puedan hacer pedidos a domicilio directamente desde sus celulares hacia tu WhatsApp.
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-center pt-4">
+                <button
+                  onClick={async () => {
+                    setIsAuthLoading(true);
+                    try {
+                      await signInQuickDemo();
+                    } catch (e) {
+                      console.error(e);
+                    } finally {
+                      setIsAuthLoading(false);
+                    }
+                  }}
+                  className="bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-8 py-4 rounded-2xl shadow-xl transition active:scale-98"
+                >
+                  Probar Aplicación en Vivo (Modo Demo)
+                </button>
+              </div>
             </div>
-
-            <div className="bg-stone-800/90 border border-purple-500/50 rounded-2xl p-4 shadow-md">
-              <span className="text-[10px] bg-purple-900 text-purple-200 font-black px-2 py-0.5 rounded-full uppercase">
-                Plan Comercial
-              </span>
-              <p className="text-xl font-black text-white mt-1.5">{formatCOP(90000)} <span className="text-[11px] font-normal text-stone-400">/ mes</span></p>
-              <p className="text-xs font-bold text-amber-300 mt-0.5">Más de 2.000 productos</p>
-              <p className="text-[11px] text-stone-300 mt-1">Para catálogos grandes y administración más avanzada.</p>
-            </div>
-          </div>
-
-          <div className="text-xs text-stone-400 max-w-lg mx-auto flex items-center justify-center gap-2">
-            <Smartphone className="w-4 h-4 text-emerald-400" />
-            <span>Soporte oficial y activaciones: <strong>{SERVICE_WHATSAPP_NUMBER}</strong> (Solo WhatsApp)</span>
-          </div>
-
-          {/* Action Login Buttons */}
-          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto">
-            <button
-              onClick={async () => {
-                setIsAuthLoading(true);
-                try {
-                  await signInWithGoogle();
-                } catch (e) {
-                  console.error(e);
-                } finally {
-                  setIsAuthLoading(false);
-                }
-              }}
-              disabled={isAuthLoading}
-              className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 bg-white hover:bg-stone-100 text-stone-900 font-bold px-6 py-3.5 rounded-2xl shadow-lg transition active:scale-98"
-            >
-              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
-              <span>Iniciar con Google</span>
-            </button>
-
-            <button
-              onClick={async () => {
-                setIsAuthLoading(true);
-                try {
-                  await signInQuickDemo();
-                } catch (e) {
-                  console.error(e);
-                } finally {
-                  setIsAuthLoading(false);
-                }
-              }}
-              disabled={isAuthLoading}
-              className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-6 py-3.5 rounded-2xl shadow-lg transition active:scale-98"
-            >
-              <span>Entrar en Modo Prueba</span>
-              <ArrowRight className="w-4 h-4 text-emerald-300" />
-            </button>
-          </div>
-
-          {/* Feature highlights */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 text-left">
-            <div className="p-4 rounded-2xl bg-stone-800/80 border border-stone-700">
-              <Receipt className="w-5 h-5 text-amber-400 mb-2" />
-              <h2 className="font-bold text-sm text-white">Caja Rápida POS</h2>
-              <p className="text-xs text-stone-400 mt-1">Cobros en efectivo, Nequi, Daviplata y ticket térmico.</p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-stone-800/80 border border-stone-700">
-              <Users className="w-5 h-5 text-emerald-400 mb-2" />
-              <h2 className="font-bold text-sm text-white">Cuaderno de Fiados</h2>
-              <p className="text-xs text-stone-400 mt-1">Saldos pendientes, abonos y extractos a WhatsApp.</p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-stone-800/80 border border-stone-700">
-              <Boxes className="w-5 h-5 text-teal-400 mb-2" />
-              <h2 className="font-bold text-sm text-white">Stock y Balanza</h2>
-              <p className="text-xs text-stone-400 mt-1">Kardex, alertas de agotados y venta por peso en balanza.</p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-stone-800/80 border border-stone-700">
-              <Globe className="w-5 h-5 text-blue-400 mb-2" />
-              <h2 className="font-bold text-sm text-white">Catálogo Online</h2>
-              <p className="text-xs text-stone-400 mt-1">Pedidos directos a tu WhatsApp sin pagar comisiones.</p>
-            </div>
-          </div>
+          )}
         </main>
 
         {/* Footer */}
-        <footer className="p-4 border-t border-stone-800 text-center text-xs text-stone-500">
+        <footer className={`p-4 border-t ${isDark ? 'border-stone-800 text-stone-500' : 'border-stone-200 text-stone-500'} text-center text-xs`}>
           Anapse PosTienda Colombia • Moneda: Pesos Colombianos (COP) • Soporte WhatsApp: {SERVICE_WHATSAPP_NUMBER}
         </footer>
       </div>
