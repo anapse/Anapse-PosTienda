@@ -17,6 +17,12 @@
         "whatsapp": { "type": "string", "maxLength": 20 },
         "catalogActive": { "type": "boolean" },
         "receiptFooter": { "type": "string", "maxLength": 250 },
+        "status": { "type": "string", "enum": ["PENDING", "ACTIVE", "SUSPENDED", "REJECTED"] },
+        "businessType": { "type": "string", "maxLength": 80 },
+        "planPrice": { "type": "number" },
+        "maxProducts": { "type": "number" },
+        "subscriptionExpiresAt": { "type": "string", "maxLength": 50 },
+        "activatedAt": { "type": "string", "maxLength": 50 },
         "createdAt": { "type": "string", "maxLength": 50 },
         "updatedAt": { "type": "string", "maxLength": 50 }
       },

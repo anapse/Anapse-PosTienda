@@ -106,6 +106,12 @@ export const ProductsView: React.FC = () => {
   }, [currentBusiness]);
 
   const openCreateModal = () => {
+    const maxLimit = currentBusiness?.maxProducts || 500;
+    if (products.length >= maxLimit) {
+      alert(`Has alcanzado el límite de ${maxLimit} productos de tu Plan Mensual ($40.000 COP). Para solicitar una ampliación, comunícate con nosotros por WhatsApp al +51 912391502.`);
+      return;
+    }
+
     setEditingProduct(null);
     setFormData({
       name: '',
@@ -252,9 +258,20 @@ export const ProductsView: React.FC = () => {
           return;
         }
 
+        const maxLimit = currentBusiness.maxProducts || 500;
+        const availableSlots = maxLimit - products.length;
+        if (availableSlots <= 0) {
+          alert(`Has alcanzado el límite de ${maxLimit} productos permitido en tu Plan Mensual ($40.000 COP). Contacta a soporte vía WhatsApp (+51 912391502) para ampliar el plan.`);
+          return;
+        }
+
         let importedCount = 0;
-        // Parse CSV simple lines
+        // Parse CSV simple lines (respecting maxLimit)
         for (let i = 1; i < lines.length; i++) {
+          if (products.length + importedCount >= maxLimit) {
+            alert(`Se importaron ${importedCount} productos hasta alcanzar el límite máximo de ${maxLimit} productos de tu plan.`);
+            break;
+          }
           const cols = lines[i].split(',').map(c => c.replace(/^"|"$/g, '').trim());
           if (cols.length >= 4 && cols[2]) { // If name column exists
             const prodId = `prod_imp_${Date.now()}_${i}`;

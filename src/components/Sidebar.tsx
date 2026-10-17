@@ -12,7 +12,8 @@ import {
   BarChart3, 
   Globe, 
   Settings,
-  X
+  X,
+  ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../firebase/authContext';
 
@@ -24,7 +25,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, isOpen, onClose }) => {
-  const { currentRole, currentBusiness } = useAuth();
+  const { currentRole, currentBusiness, isSuperAdmin } = useAuth();
 
   const navItems = [
     { id: 'dashboard', label: '1. Inicio', icon: Home, roles: ['owner', 'admin', 'cashier'] },
@@ -40,6 +41,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, isOpe
     { id: 'catalog', label: '11. Catálogo Online', icon: Globe, roles: ['owner', 'admin'] },
     { id: 'settings', label: '12. Configuración y DIAN', icon: Settings, roles: ['owner', 'admin'] },
   ];
+
+  if (isSuperAdmin) {
+    navItems.unshift({
+      id: 'superadmin',
+      label: '👑 Activaciones y Clientes',
+      icon: ShieldCheck,
+      roles: ['owner', 'admin', 'cashier'],
+      highlight: true
+    });
+  }
 
   const allowedItems = navItems.filter(item => item.roles.includes(currentRole));
 

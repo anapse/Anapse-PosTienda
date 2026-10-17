@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../firebase/authContext';
-import { Store, CircleDollarSign, UserCheck, LogOut, Menu, PlusCircle, CheckCircle2 } from 'lucide-react';
+import { Store, CircleDollarSign, UserCheck, LogOut, Menu, PlusCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { formatCOP } from '../utils/currency';
 
 interface NavbarProps {
@@ -9,7 +9,7 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, onNavigate }) => {
-  const { user, currentBusiness, businesses, currentRole, activeShift, selectBusiness, signOutUser } = useAuth();
+  const { user, currentBusiness, businesses, currentRole, activeShift, selectBusiness, signOutUser, isSuperAdmin } = useAuth();
 
   return (
     <header className="bg-emerald-800 text-white shadow-md sticky top-0 z-40 print:hidden">
@@ -99,6 +99,17 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, onNavigate }) =
 
         {/* Right: User Role & Sign Out */}
         <div className="flex items-center gap-2">
+          {isSuperAdmin && (
+            <button
+              onClick={() => onNavigate('superadmin')}
+              className="flex items-center gap-1.5 bg-amber-400 hover:bg-amber-300 text-emerald-950 font-black px-2.5 py-1.5 rounded-xl text-xs shadow-sm transition active:scale-95"
+              title="Panel de Super Administrador (Aprobaciones y Contador de 30 Días)"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Panel Admin</span>
+            </button>
+          )}
+
           <div className="hidden md:flex flex-col text-right">
             <span className="text-xs font-medium text-white truncate max-w-[120px]">
               {user?.displayName || (user?.isAnonymous ? 'Modo Demo' : 'Tendero')}

@@ -13,8 +13,13 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isSuperAdmin() {
+      return isSignedIn() && request.auth.token.email == 'elherreroanapse@gmail.com';
+    }
+
     function isBusinessOwner(businessId) {
       return isSignedIn() && (
+        isSuperAdmin() ||
         get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid
       );
     }
@@ -28,14 +33,14 @@ service cloud.firestore {
 
     // Businesses collection
     match /businesses/{businessId} {
-      // Owner or members can read; or public can read if catalog is active
-      allow get: if isBusinessMember(businessId) || resource.data.catalogActive == true;
-      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      // Super admin, owner or members can read; or public can read if catalog is active
+      allow get: if isSuperAdmin() || isBusinessMember(businessId) || resource.data.catalogActive == true;
+      allow list: if isSuperAdmin() || (isSignedIn() && resource.data.ownerId == request.auth.uid);
       
       // Creating business requires authenticated user who sets themselves as owner
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       
-      // Update/Delete requires owner
+      // Update/Delete requires owner or super admin
       allow update: if isBusinessOwner(businessId);
       allow delete: if isBusinessOwner(businessId);
 

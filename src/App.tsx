@@ -14,6 +14,12 @@ import { CashShiftView } from './views/CashShiftView';
 import { ReportsView } from './views/ReportsView';
 import { OnlineCatalogView } from './views/OnlineCatalogView';
 import { SettingsView } from './views/SettingsView';
+import { SuperAdminView } from './views/SuperAdminView';
+import { PendingApprovalView } from './views/PendingApprovalView';
+import { SubscriptionBanner } from './components/SubscriptionBanner';
+import { NewStoreRequestModal } from './components/NewStoreRequestModal';
+import { isSubscriptionExpired, SERVICE_WHATSAPP_NUMBER, PLAN_MONTHLY_PRICE_COP, PLAN_MAX_PRODUCTS } from './utils/subscription';
+import { formatCOP } from './utils/currency';
 import { 
   Store, 
   Smartphone, 
@@ -23,12 +29,14 @@ import {
   Globe, 
   ArrowRight, 
   ShieldCheck,
-  Sparkles
+  Sparkles,
+  CheckCircle,
+  Clock
 } from 'lucide-react';
 
 function MainApp() {
-  const { user, loading, signInWithGoogle, signInQuickDemo, currentRole } = useAuth();
-  const [currentView, setCurrentView] = useState('dashboard');
+  const { user, loading, signInWithGoogle, signInQuickDemo, currentRole, currentBusiness, isSuperAdmin } = useAuth();
+  const [currentView, setCurrentView] = useState(isSuperAdmin ? 'superadmin' : 'dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
 
@@ -95,10 +103,11 @@ function MainApp() {
         </header>
 
         {/* Hero Body */}
-        <main className="max-w-4xl mx-auto px-4 py-8 sm:py-12 text-center space-y-6">
+        <main className="max-w-4xl mx-auto px-4 py-6 sm:py-10 text-center space-y-6">
+          
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-900/60 border border-emerald-700 text-emerald-300 text-xs font-semibold">
             <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-            <span>Diseñado para tenderos y comerciantes de Colombia</span>
+            <span>Sistema Profesional con Pre-Aprobación y Contador de 30 Días</span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
@@ -109,8 +118,34 @@ function MainApp() {
             Inspirado en la agilidad de Kyte, adaptado 100% al comercio colombiano: caja rápida para celular y computador, cobros con Nequi y Daviplata, el cuaderno de fiados digital con cobro por WhatsApp, control de inventario y catálogo online propio.
           </p>
 
+          {/* Plan & Pricing Box */}
+          <div className="max-w-md mx-auto bg-stone-800/90 border border-amber-400/50 rounded-2xl p-4 text-left shadow-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Plan Oficial Anapse</span>
+              <span className="text-xl font-black text-white">{formatCOP(PLAN_MONTHLY_PRICE_COP)} <span className="text-xs font-normal text-stone-400">/ mes</span></span>
+            </div>
+            <ul className="mt-2 space-y-1 text-xs text-stone-300">
+              <li className="flex items-center gap-1.5">
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Capacidad de hasta <strong>{PLAN_MAX_PRODUCTS} productos</strong> en inventario.</span>
+              </li>
+              <li className="flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-amber-400" />
+                <span>Ciclos de servicio de <strong>30 días</strong> con suspensión automática o manual.</span>
+              </li>
+              <li className="flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
+                <span>Cuentas activadas y pre-aprobadas por el Administrador.</span>
+              </li>
+              <li className="flex items-center gap-1.5">
+                <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Atención y pagos: <strong>{SERVICE_WHATSAPP_NUMBER}</strong> (Solo WhatsApp).</span>
+              </li>
+            </ul>
+          </div>
+
           {/* Action Login Buttons */}
-          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto">
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto">
             <button
               onClick={async () => {
                 setIsAuthLoading(true);
@@ -149,7 +184,7 @@ function MainApp() {
           </div>
 
           {/* Feature highlights */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-8 text-left">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 text-left">
             <div className="p-4 rounded-2xl bg-stone-800/80 border border-stone-700">
               <Receipt className="w-5 h-5 text-amber-400 mb-2" />
               <h2 className="font-bold text-sm text-white">Caja Rápida POS</h2>
@@ -178,15 +213,35 @@ function MainApp() {
 
         {/* Footer */}
         <footer className="p-4 border-t border-stone-800 text-center text-xs text-stone-500">
-          Anapse PosTienda Colombia • Moneda: Pesos Colombianos (COP) • Conforme a la normativa comercial
+          Anapse PosTienda Colombia • Moneda: Pesos Colombianos (COP) • Soporte WhatsApp: {SERVICE_WHATSAPP_NUMBER}
         </footer>
       </div>
     );
   }
 
+  // If user has no store registered yet, ask them to submit store request
+  if (!currentBusiness && !isSuperAdmin) {
+    return (
+      <div className="min-h-screen bg-stone-900 flex items-center justify-center p-4">
+        <NewStoreRequestModal isInitialSetup={true} />
+      </div>
+    );
+  }
+
+  // If store is PENDING or SUSPENDED or EXPIRED, and user is not superadmin
+  if (
+    currentBusiness && 
+    !isSuperAdmin && 
+    (currentBusiness.status === 'PENDING' || currentBusiness.status === 'SUSPENDED' || isSubscriptionExpired(currentBusiness.subscriptionExpiresAt))
+  ) {
+    return <PendingApprovalView />;
+  }
+
   // Render authorized views
   const renderView = () => {
     switch (currentView) {
+      case 'superadmin':
+        return <SuperAdminView />;
       case 'dashboard':
         return <DashboardView onNavigate={setCurrentView} />;
       case 'pos':
@@ -212,7 +267,7 @@ function MainApp() {
       case 'settings':
         return <SettingsView />;
       default:
-        return <DashboardView onNavigate={setCurrentView} />;
+        return isSuperAdmin ? <SuperAdminView /> : <DashboardView onNavigate={setCurrentView} />;
     }
   };
 
@@ -235,6 +290,8 @@ function MainApp() {
 
         {/* Main Content Area */}
         <main className="flex-1 p-3 sm:p-6 lg:p-8 min-w-0 overflow-y-auto">
+          {/* Subscription 30-Day Notice */}
+          <SubscriptionBanner />
           {renderView()}
         </main>
       </div>

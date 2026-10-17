@@ -4,6 +4,15 @@ import { db, handleFirestoreError, OperationType } from '../firebase/config';
 import { doc, updateDoc, collection, onSnapshot, setDoc } from 'firebase/firestore';
 import { Business, BusinessMember, UserRole } from '../types';
 import { 
+  PLAN_MONTHLY_PRICE_COP, 
+  PLAN_MAX_PRODUCTS, 
+  SERVICE_WHATSAPP_NUMBER, 
+  SERVICE_WHATSAPP_CLEAN, 
+  getDaysRemaining, 
+  getWhatsAppRenewalUrl 
+} from '../utils/subscription';
+import { formatCOP } from '../utils/currency';
+import { 
   Settings, 
   Store, 
   ShieldCheck, 
@@ -13,11 +22,13 @@ import {
   CheckCircle2, 
   AlertTriangle,
   Info,
-  Plus
+  Plus,
+  Clock,
+  Smartphone
 } from 'lucide-react';
 
 export const SettingsView: React.FC = () => {
-  const { currentBusiness, businesses, selectBusiness, createBusiness, currentRole, refreshBusiness } = useAuth();
+  const { currentBusiness, businesses, selectBusiness, createBusinessRequest, currentRole, refreshBusiness } = useAuth();
 
   const [activeTab, setActiveTab] = useState<'BUSINESS' | 'DIAN' | 'STORES' | 'USERS' | 'SUBSCRIPTION'>('BUSINESS');
   const [isSaving, setIsSaving] = useState(false);
@@ -106,18 +117,20 @@ export const SettingsView: React.FC = () => {
     }
 
     try {
-      await createBusiness(
-        newStoreForm.name,
-        newStoreForm.nit,
-        newStoreForm.phone,
-        newStoreForm.address,
-        newStoreForm.city
-      );
+      await createBusinessRequest({
+        name: newStoreForm.name,
+        businessType: 'Tienda de barrio / Abarrotes',
+        contactName: bizForm.name || 'Propietario',
+        phone: newStoreForm.phone || bizForm.phone || '3000000000',
+        nit: newStoreForm.nit,
+        address: newStoreForm.address,
+        city: newStoreForm.city,
+      });
       setShowNewStoreModal(false);
       setNewStoreForm({ name: '', nit: '', phone: '', address: '', city: 'Bogotá' });
-      alert('¡Nuevo comercio creado con éxito!');
+      alert('¡Solicitud de nuevo comercio registrada con éxito! Tu tienda será activada por el administrador.');
     } catch (err: any) {
-      alert(err.message || 'Error al crear el comercio.');
+      alert(err.message || 'Error al crear la solicitud de comercio.');
     }
   };
 
@@ -396,22 +409,83 @@ export const SettingsView: React.FC = () => {
 
       {/* TAB 5: Subscriptions */}
       {activeTab === 'SUBSCRIPTION' && (
-        <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-xs max-w-2xl space-y-4">
-          <h2 className="font-extrabold text-stone-900 text-base">Plan de Suscripción</h2>
+        <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-xs max-w-2xl space-y-5">
+          <div>
+            <span className="text-[10px] bg-amber-400 text-emerald-950 font-black px-2 py-0.5 rounded-full uppercase">
+              Plan Oficial Anapse PosTienda
+            </span>
+            <h2 className="font-extrabold text-stone-900 text-xl mt-1">Suscripción y Estado de Cuenta</h2>
+            <p className="text-xs text-stone-500 mt-0.5">Control de los 30 días de servicio, capacidad de inventario y atención directa.</p>
+          </div>
           
-          <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-center justify-between">
-            <div>
-              <span className="text-[10px] bg-emerald-700 text-white font-bold px-2 py-0.5 rounded-full uppercase">
-                Plan Activo
-              </span>
-              <h3 className="text-xl font-black text-emerald-950 mt-1">Plan Tienda Emprendedor</h3>
-              <p className="text-xs text-emerald-800 mt-0.5">Ventas, inventario, caja diaria y catálogo online ilimitados.</p>
+          <div className="p-5 bg-gradient-to-br from-emerald-900 to-stone-900 text-white rounded-2xl border border-emerald-700 shadow-md">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-emerald-800">
+              <div>
+                <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Plan Mensual</span>
+                <h3 className="text-2xl font-black text-white mt-0.5">Anapse PosTienda Pro</h3>
+              </div>
+              <div className="text-left sm:text-right">
+                <span className="text-3xl font-black text-amber-400">{formatCOP(PLAN_MONTHLY_PRICE_COP)}</span>
+                <span className="text-xs text-emerald-200 block">/ ciclo de 30 días</span>
+              </div>
             </div>
-            <span className="text-2xl font-black text-emerald-800">$ 0 / mes</span>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 text-xs">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Capacidad hasta <strong>{PLAN_MAX_PRODUCTS} productos</strong></span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>Ciclos de <strong>30 días</strong> (suspensión auto/manual)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0" />
+                <span>Pre-aprobación y soporte directo</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Smartphone className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Soporte WhatsApp: <strong>{SERVICE_WHATSAPP_NUMBER}</strong></span>
+              </div>
+            </div>
           </div>
 
-          <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 text-xs text-stone-500">
-            * Conforme a los lineamientos del proyecto, no se simulan cobros bancarios reales ni se activan pasarelas de pago antes de la integración con proveedor autorizado.
+          {/* Current Store Status */}
+          <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-stone-700">Estado de la Tienda Actual:</span>
+              <span className={`text-xs font-black px-2.5 py-0.5 rounded-full uppercase ${
+                currentBusiness?.status === 'ACTIVE' 
+                  ? 'bg-emerald-100 text-emerald-800' 
+                  : currentBusiness?.status === 'PENDING'
+                  ? 'bg-amber-100 text-amber-800'
+                  : 'bg-rose-100 text-rose-800'
+              }`}>
+                {currentBusiness?.status === 'ACTIVE' ? 'Activo' : currentBusiness?.status === 'PENDING' ? 'En Revisión' : 'Suspendido'}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-stone-700">Días Restantes de Servicio:</span>
+              <span className="text-sm font-black text-stone-900">
+                {getDaysRemaining(currentBusiness?.subscriptionExpiresAt)} días
+              </span>
+            </div>
+
+            <div className="pt-2 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="text-xs text-stone-500">
+                Para renovaciones o reactivación inmediata de servicio:
+              </div>
+              <a
+                href={currentBusiness ? getWhatsAppRenewalUrl(currentBusiness.name, getDaysRemaining(currentBusiness.subscriptionExpiresAt)) : `https://wa.me/${SERVICE_WHATSAPP_CLEAN}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition active:scale-95"
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                <span>Renovar por WhatsApp (+51 912391502)</span>
+              </a>
+            </div>
           </div>
         </div>
       )}

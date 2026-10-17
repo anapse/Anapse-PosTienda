@@ -1,5 +1,7 @@
 export type UserRole = 'owner' | 'admin' | 'cashier';
 
+export type BusinessStatus = 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'REJECTED';
+
 export interface Business {
   id: string;
   name: string;
@@ -13,6 +15,15 @@ export interface Business {
   whatsapp: string;
   catalogActive: boolean;
   receiptFooter: string;
+  status: BusinessStatus;
+  businessType?: string;
+  planName?: string;
+  planPrice?: number;
+  maxProducts?: number;
+  subscriptionExpiresAt?: string;
+  activatedAt?: string;
+  requestedAt?: string;
+  merchantContactName?: string;
   createdAt: string;
   updatedAt?: string;
 }
