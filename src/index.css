@@ -1,1 +1,17 @@
 @import "tailwindcss";
+
+@layer base {
+  body {
+    @apply antialiased text-stone-900 dark:text-stone-100;
+  }
+  
+  /* Reduce mobile scrollbar footprint */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-stone-300 rounded-full;
+  }
+}
+

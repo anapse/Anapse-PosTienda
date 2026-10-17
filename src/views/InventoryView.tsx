@@ -218,21 +218,21 @@ export const InventoryView: React.FC = () => {
 
       {/* Valuation Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs">
-          <span className="text-xs font-semibold text-stone-500 uppercase">Valor Inventario (Al Costo)</span>
-          <p className="text-xl sm:text-2xl font-extrabold text-stone-900 mt-1">{formatCOP(totalCostValuation)}</p>
+        <div className="bg-white dark:bg-stone-900 p-4 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-xs">
+          <span className="text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase">Valor Inventario (Al Costo)</span>
+          <p className="text-xl sm:text-2xl font-extrabold text-stone-900 dark:text-stone-100 mt-1">{formatCOP(totalCostValuation)}</p>
           <p className="text-[11px] text-stone-400 mt-1">Capital invertido en mercancía</p>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs">
-          <span className="text-xs font-semibold text-stone-500 uppercase">Valor Comercial (A la Venta)</span>
-          <p className="text-xl sm:text-2xl font-extrabold text-emerald-700 mt-1">{formatCOP(totalSaleValuation)}</p>
+        <div className="bg-white dark:bg-stone-900 p-4 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-xs">
+          <span className="text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase">Valor Comercial (A la Venta)</span>
+          <p className="text-xl sm:text-2xl font-extrabold text-emerald-700 dark:text-emerald-400 mt-1">{formatCOP(totalSaleValuation)}</p>
           <p className="text-[11px] text-stone-400 mt-1">Ingreso esperado por venta total</p>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs">
-          <span className="text-xs font-semibold text-stone-500 uppercase">Ganancia Bruta Potencial</span>
-          <p className="text-xl sm:text-2xl font-extrabold text-blue-700 mt-1">{formatCOP(potentialProfit)}</p>
+        <div className="bg-white dark:bg-stone-900 p-4 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-xs">
+          <span className="text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase">Ganancia Bruta Potencial</span>
+          <p className="text-xl sm:text-2xl font-extrabold text-blue-700 dark:text-blue-400 mt-1">{formatCOP(potentialProfit)}</p>
           <p className="text-[11px] text-stone-400 mt-1">Margen proyectado de todo el stock</p>
         </div>
       </div>

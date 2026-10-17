@@ -16,6 +16,7 @@ import {
 import { Product, CartItem, Sale, Customer, PaymentRecord, PaymentMethod, CashShift } from '../types';
 import { formatCOP, formatQuantity } from '../utils/currency';
 import { ReceiptModal } from '../components/ReceiptModal';
+import { ProductSelectionModal } from '../components/ProductSelectionModal';
 import { 
   Search, 
   ShoppingCart, 
@@ -45,10 +46,6 @@ export const PosView: React.FC<PosViewProps> = ({ onNavigate }) => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Search & Filter
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('TODAS');
-
   // Cart
   const [cart, setCart] = useState<{
     product: Product;
@@ -61,6 +58,7 @@ export const PosView: React.FC<PosViewProps> = ({ onNavigate }) => {
 
   // Payment Modal
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showProductModal, setShowProductModal] = useState(false);
   const [payments, setPayments] = useState<{ method: PaymentMethod; amount: number; reference: string }[]>([
     { method: 'cash', amount: 0, reference: '' }
   ]);
@@ -108,20 +106,7 @@ export const PosView: React.FC<PosViewProps> = ({ onNavigate }) => {
     };
   }, [currentBusiness]);
 
-  // Categories extraction
-  const categories = ['TODAS', ...Array.from(new Set(products.map(p => p.category || 'Otros')))];
 
-  // Filtered products
-  const filteredProducts = products.filter(p => {
-    const matchesSearch = 
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (p.barcode && p.barcode.includes(searchQuery)) ||
-      (p.internalCode && p.internalCode.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    const matchesCategory = selectedCategory === 'TODAS' || p.category === selectedCategory;
-
-    return matchesSearch && matchesCategory;
-  });
 
   // Cart operations
   const addToCart = (product: Product, quantityToAdd: number = 1) => {
@@ -406,111 +391,26 @@ export const PosView: React.FC<PosViewProps> = ({ onNavigate }) => {
       {/* Left: Product Catalog & Fast Search */}
       <div className="flex-1 flex flex-col bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
         
-        {/* Search Bar & Categories Header */}
-        <div className="p-3 sm:p-4 border-b border-stone-200 space-y-3 bg-stone-50">
-          <div className="relative">
-            <Search className="absolute left-3.5 top-3 w-5 h-5 text-stone-400" />
-            <input
-              type="text"
-              placeholder="Buscar por nombre, código de barras o referencia..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-2.5 bg-white border border-stone-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-3 text-xs text-stone-400 hover:text-stone-600"
-              >
-                Limpiar
-              </button>
-            )}
-          </div>
-
-          {/* Quick Category Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
-                  selectedCategory === cat
-                    ? 'bg-emerald-700 text-white shadow-xs'
-                    : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-100'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
+        {/* Product Selection Button */}
+        <div className="p-4 border-b border-stone-200">
+          <button 
+            onClick={() => setShowProductModal(true)}
+            className="w-full py-4 bg-emerald-700 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-2 hover:bg-emerald-800 transition"
+          >
+            <Plus className="w-6 h-6" />
+            <span>Agregar Producto</span>
+          </button>
         </div>
 
-        {/* Product Cards Grid */}
-        <div className="flex-1 p-2 sm:p-4 overflow-y-auto">
-          {loading ? (
-            <div className="h-full flex items-center justify-center text-stone-400 text-sm">
-              Cargando catálogo...
-            </div>
-          ) : filteredProducts.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center p-6 text-stone-400">
-              <ShoppingCart className="w-12 h-12 mb-2 text-stone-300" />
-              <p className="font-medium text-stone-600">No se encontraron productos</p>
-              <p className="text-xs text-stone-400 mt-1">
-                {searchQuery ? 'Prueba con otra palabra o código.' : 'Agrega productos en la sección Productos.'}
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
-              {filteredProducts.map((p) => {
-                const isOutOfStock = p.stock <= 0;
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => !isOutOfStock && addToCart(p)}
-                    disabled={isOutOfStock}
-                    className={`p-3 rounded-xl border text-left flex flex-col justify-between transition group relative select-none ${
-                      isOutOfStock
-                        ? 'bg-stone-50 border-stone-200 opacity-60 cursor-not-allowed'
-                        : 'bg-white border-stone-200 hover:border-emerald-600 hover:shadow-md active:scale-98 cursor-pointer'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between text-[11px] text-stone-400 mb-1">
-                        <span className="truncate max-w-[80px]">{p.category}</span>
-                        {p.allowDecimals && (
-                          <span className="flex items-center gap-0.5 text-blue-600 font-semibold" title="Venta por peso">
-                            <Scale className="w-3 h-3" /> Peso
-                          </span>
-                        )}
-                      </div>
-                      <h3 className="font-bold text-xs sm:text-sm text-stone-900 group-hover:text-emerald-800 line-clamp-2">
-                        {p.name}
-                      </h3>
-                    </div>
+        {/* Product Modal */}
+        {showProductModal && (
+          <ProductSelectionModal 
+            products={products} 
+            onClose={() => setShowProductModal(false)}
+            onAddToCart={addToCart}
+          />
+        )}
 
-                    <div className="mt-3 pt-2 border-t border-stone-100 flex items-end justify-between">
-                      <div>
-                        <span className="text-[10px] text-stone-400 block">Precio COP</span>
-                        <span className="text-sm sm:text-base font-extrabold text-emerald-700">
-                          {formatCOP(p.salePrice)}
-                        </span>
-                      </div>
-                      <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded ${
-                        isOutOfStock 
-                          ? 'bg-rose-100 text-rose-700 font-bold' 
-                          : p.stock <= p.minStock 
-                          ? 'bg-amber-100 text-amber-800' 
-                          : 'bg-stone-100 text-stone-600'
-                      }`}>
-                        {isOutOfStock ? '0' : `${formatQuantity(p.stock, p.allowDecimals)} ${p.unit}`}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Right: Cart & Checkout Panel - Responsive with toggle */}
@@ -523,14 +423,24 @@ export const PosView: React.FC<PosViewProps> = ({ onNavigate }) => {
             <h2 className="font-bold text-stone-900 text-base">Carrito ({cart.length})</h2>
           </div>
           {cart.length > 0 && (
-            <button
-              onClick={clearCart}
-              title="Vaciar carrito"
-              className="text-xs text-rose-600 hover:text-rose-800 font-medium flex items-center gap-1"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Vaciar</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowProductModal(true)}
+                title="Agregar más productos"
+                className="text-xs bg-emerald-700 text-white font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 hover:bg-emerald-800"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Agregar</span>
+              </button>
+              <button
+                onClick={clearCart}
+                title="Vaciar carrito"
+                className="text-xs text-rose-600 hover:text-rose-800 font-medium flex items-center gap-1"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Vaciar</span>
+              </button>
+            </div>
           )}
         </div>
 
@@ -582,10 +492,10 @@ export const PosView: React.FC<PosViewProps> = ({ onNavigate }) => {
               return (
                 <div key={item.product.id} className="py-2.5 flex items-center justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-xs sm:text-sm text-stone-900 truncate">
+                    <p className="font-bold text-xs sm:text-sm text-stone-900 dark:text-stone-100 truncate">
                       {item.product.name}
                     </p>
-                    <p className="text-[11px] text-stone-400">
+                    <p className="text-[11px] text-stone-500 dark:text-stone-400">
                       {formatCOP(item.product.salePrice)} / {item.product.unit}
                     </p>
                   </div>
@@ -594,25 +504,25 @@ export const PosView: React.FC<PosViewProps> = ({ onNavigate }) => {
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => updateQuantity(item.product.id, item.quantity - (item.product.allowDecimals ? 0.25 : 1))}
-                      className="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center font-bold"
+                      className="w-7 h-7 rounded-lg bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200 flex items-center justify-center font-bold"
                     >
                       <Minus className="w-3.5 h-3.5" />
                     </button>
                     
-                    <span className="w-12 text-center text-xs font-bold text-stone-800">
+                    <span className="w-12 text-center text-xs font-bold text-stone-800 dark:text-stone-100">
                       {formatQuantity(item.quantity, item.product.allowDecimals)}
                     </span>
 
                     <button
                       onClick={() => updateQuantity(item.product.id, item.quantity + (item.product.allowDecimals ? 0.25 : 1))}
-                      className="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center font-bold"
+                      className="w-7 h-7 rounded-lg bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200 flex items-center justify-center font-bold"
                     >
                       <Plus className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
                   <div className="text-right w-20">
-                    <p className="font-bold text-xs sm:text-sm text-stone-900">
+                    <p className="font-bold text-xs sm:text-sm text-stone-900 dark:text-stone-100">
                       {formatCOP(itemTotal)}
                     </p>
                     <button
@@ -654,9 +564,9 @@ export const PosView: React.FC<PosViewProps> = ({ onNavigate }) => {
               />
             </div>
 
-            <div className="pt-2 border-t border-stone-200 flex justify-between items-baseline">
-              <span className="text-sm font-extrabold text-stone-900 uppercase">Total a Pagar:</span>
-              <span className="text-2xl font-black text-emerald-700">{formatCOP(total)}</span>
+            <div className="pt-2 border-t border-stone-200 dark:border-stone-700 flex justify-between items-baseline">
+              <span className="text-sm font-extrabold text-stone-900 dark:text-stone-100 uppercase">Total a Pagar:</span>
+              <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{formatCOP(total)}</span>
             </div>
           </div>
 

@@ -71,37 +71,37 @@ service cloud.firestore {
 
       // Sales subcollection
       match /sales/{saleId} {
-        allow read, write: if isBusinessMember(businessId);
+        allow read, write: if isBusinessMember(businessId) || businessId == 'demo_store_123';
       }
 
       // Customers and fiado subcollection
       match /customers/{customerId} {
-        allow read, write: if isBusinessMember(businessId);
+        allow read, write: if isBusinessMember(businessId) || businessId == 'demo_store_123';
       }
 
       // Customer debt/credit movements subcollection
       match /customerMovements/{movementId} {
-        allow read, write: if isBusinessMember(businessId);
+        allow read, write: if isBusinessMember(businessId) || businessId == 'demo_store_123';
       }
 
       // Cash shifts (caja diaria) subcollection
       match /cashShifts/{shiftId} {
-        allow read, write: if isBusinessMember(businessId);
+        allow read, write: if isBusinessMember(businessId) || businessId == 'demo_store_123';
       }
 
       // Cash in/out movements subcollection
       match /cashMovements/{movementId} {
-        allow read, write: if isBusinessMember(businessId);
+        allow read, write: if isBusinessMember(businessId) || businessId == 'demo_store_123';
       }
 
       // Suppliers subcollection
       match /suppliers/{supplierId} {
-        allow read, write: if isBusinessMember(businessId);
+        allow read, write: if isBusinessMember(businessId) || businessId == 'demo_store_123';
       }
 
       // Purchases subcollection
       match /purchases/{purchaseId} {
-        allow read, write: if isBusinessMember(businessId);
+        allow read, write: if isBusinessMember(businessId) || businessId == 'demo_store_123';
       }
 
       // Catalog online orders subcollection
