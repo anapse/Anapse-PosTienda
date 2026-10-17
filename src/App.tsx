@@ -36,7 +36,7 @@ import {
 } from 'lucide-react';
 
 function MainApp() {
-  const { user, loading, signInWithGoogle, signInQuickDemo, currentRole, currentBusiness, isSuperAdmin } = useAuth();
+  const { user, loading, signInWithGoogle, signInQuickDemo, signOutUser, currentRole, currentBusiness, isSuperAdmin } = useAuth();
   const [currentView, setCurrentView] = useState(isSuperAdmin ? 'superadmin' : 'dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
@@ -243,7 +243,7 @@ function MainApp() {
   if (!currentBusiness && !isSuperAdmin) {
     return (
       <div className="min-h-screen bg-stone-900 flex items-center justify-center p-4">
-        <NewStoreRequestModal isInitialSetup={true} />
+        <NewStoreRequestModal isInitialSetup={true} onClose={signOutUser} />
       </div>
     );
   }

@@ -10,7 +10,15 @@ interface NewStoreRequestModalProps {
 }
 
 export const NewStoreRequestModal: React.FC<NewStoreRequestModalProps> = ({ onClose, isInitialSetup = false }) => {
-  const { createBusinessRequest, user } = useAuth();
+  const { createBusinessRequest, user, signOutUser } = useAuth();
+
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      signOutUser().catch(() => window.location.reload());
+    }
+  };
 
   const [selectedPlanId, setSelectedPlanId] = useState<'tienda' | 'almacen' | 'comercial'>('tienda');
   const [form, setForm] = useState({
@@ -65,7 +73,7 @@ export const NewStoreRequestModal: React.FC<NewStoreRequestModalProps> = ({ onCl
           </div>
           <div className="flex items-center gap-2">
             <button 
-              onClick={onClose} 
+              onClick={handleClose} 
               className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 rounded-xl text-stone-700 font-black text-xs transition flex items-center gap-1 shadow-xs"
               title="Cerrar / Volver"
             >
