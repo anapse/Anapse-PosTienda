@@ -132,6 +132,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loadUserBusinesses = async (currentUser: User) => {
     setLoading(true);
     const isSuper = currentUser.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+    const isDemo = currentUser.isAnonymous;
+
+    if (isDemo) {
+      const demoStore: Business = {
+        id: 'demo_store_123',
+        name: 'Supermercado de Prueba Anapse',
+        ownerId: currentUser.uid,
+        nit: '900.999.888-1',
+        phone: '51912391502',
+        address: 'Calle Principal #45-20, Bogotá',
+        city: 'Bogotá',
+        currency: 'COP',
+        slug: 'supermercado-demo',
+        whatsapp: '51912391502',
+        catalogActive: true,
+        receiptFooter: '¡Gracias por su compra en Modo Prueba!',
+        status: 'ACTIVE',
+        businessType: 'Minimarket / Supermercado',
+        merchantContactName: 'Comerciante de Prueba',
+        planId: 'tienda',
+        planName: 'Plan Tienda',
+        planPrice: 40000,
+        maxProducts: 500,
+        createdAt: new Date().toISOString(),
+        activatedAt: new Date().toISOString(),
+        subscriptionExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      };
+      setBusinesses([demoStore]);
+      setCurrentBusiness(demoStore);
+      setCurrentRole('owner');
+      setLoading(false);
+      return;
+    }
 
     try {
       if (isSuper) {

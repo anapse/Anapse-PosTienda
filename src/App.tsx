@@ -203,36 +203,6 @@ function MainApp() {
                 Diseñado 100% para el comercio colombiano: caja rápida para celular y computador, cobros con Nequi y Daviplata, el cuaderno de fiados digital con cobro por WhatsApp, control de inventario y catálogo online propio.
               </p>
 
-              {/* Commercial Plans Summary Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto text-left">
-                <div className={`${isDark ? 'bg-stone-900 border-emerald-500/60' : 'bg-white border-emerald-500/50 shadow-md'} border rounded-2xl p-5 relative`}>
-                  <span className="text-[10px] bg-emerald-700 text-white font-black px-2 py-0.5 rounded-full uppercase">
-                    Plan Tienda
-                  </span>
-                  <p className={`text-2xl font-black ${isDark ? 'text-white' : 'text-stone-900'} mt-2`}>{formatCOP(40000)} <span className="text-[11px] font-normal text-stone-400">/ mes</span></p>
-                  <p className="text-xs font-bold text-amber-500 mt-1">Hasta 500 productos</p>
-                  <p className={`text-xs ${isDark ? 'text-stone-300' : 'text-stone-600'} mt-1`}>Ventas, inventario, caja, clientes, fiado y reportes.</p>
-                </div>
-
-                <div className={`${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-stone-200 shadow-md'} border rounded-2xl p-5`}>
-                  <span className="text-[10px] bg-stone-700 text-stone-200 font-black px-2 py-0.5 rounded-full uppercase">
-                    Plan Almacén
-                  </span>
-                  <p className={`text-2xl font-black ${isDark ? 'text-white' : 'text-stone-900'} mt-2`}>{formatCOP(60000)} <span className="text-[11px] font-normal text-stone-400">/ mes</span></p>
-                  <p className="text-xs font-bold text-amber-500 mt-1">501 – 2.000 productos</p>
-                  <p className={`text-xs ${isDark ? 'text-stone-300' : 'text-stone-600'} mt-1`}>Más capacidad de catálogo y herramientas adicionales de inventario.</p>
-                </div>
-
-                <div className={`${isDark ? 'bg-stone-900 border-purple-500/50' : 'bg-white border-purple-500/40 shadow-md'} border rounded-2xl p-5`}>
-                  <span className="text-[10px] bg-purple-900 text-purple-200 font-black px-2 py-0.5 rounded-full uppercase">
-                    Plan Comercial
-                  </span>
-                  <p className={`text-2xl font-black ${isDark ? 'text-white' : 'text-stone-900'} mt-2`}>{formatCOP(90000)} <span className="text-[11px] font-normal text-stone-400">/ mes</span></p>
-                  <p className="text-xs font-bold text-amber-500 mt-1">Más de 2.000 productos</p>
-                  <p className={`text-xs ${isDark ? 'text-stone-300' : 'text-stone-600'} mt-1`}>Para catálogos grandes y administración más avanzada.</p>
-                </div>
-              </div>
-
               <div className="text-xs text-stone-400 max-w-lg mx-auto flex items-center justify-center gap-2">
                 <Smartphone className="w-4 h-4 text-emerald-400" />
                 <span>Soporte oficial y activaciones: <strong>{SERVICE_WHATSAPP_NUMBER}</strong> (Solo WhatsApp)</span>
