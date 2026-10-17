@@ -266,11 +266,34 @@ export const PosView: React.FC<PosViewProps> = ({ onNavigate }) => {
 
     try {
       // Perform atomic inventory deduction and sale recording
+      // Perform atomic inventory deduction and sale recording with all reads before writes
       await runTransaction(db, async (transaction) => {
+        // --- PHASE 1: ALL READS ---
+        const productReads = await Promise.all(
+          cart.map(async (item) => {
+            const prodRef = doc(db, `businesses/${currentBusiness.id}/products`, item.product.id);
+            const prodSnap = await transaction.get(prodRef);
+            return { item, prodRef, prodSnap };
+          })
+        );
+
+        let custRef = null;
+        let custSnap = null;
+        if (pendingAmount > 0 && selectedCustomer) {
+          custRef = doc(db, `businesses/${currentBusiness.id}/customers`, selectedCustomer.id);
+          custSnap = await transaction.get(custRef);
+        }
+
+        let shiftRef = null;
+        let shiftSnap = null;
+        if (activeShift) {
+          shiftRef = doc(db, `businesses/${currentBusiness.id}/cashShifts`, activeShift.id);
+          shiftSnap = await transaction.get(shiftRef);
+        }
+
+        // --- PHASE 2: ALL WRITES ---
         // 1. Verify stocks and deduct
-        for (const item of cart) {
-          const prodRef = doc(db, `businesses/${currentBusiness.id}/products`, item.product.id);
-          const prodSnap = await transaction.get(prodRef);
+        for (const { item, prodRef, prodSnap } of productReads) {
           if (prodSnap.exists()) {
             const currentStock = prodSnap.data().stock || 0;
             const newStock = Math.max(0, currentStock - item.quantity);
@@ -305,9 +328,7 @@ export const PosView: React.FC<PosViewProps> = ({ onNavigate }) => {
         transaction.set(saleRef, saleData);
 
         // 3. If credit / fiado, update customer balance
-        if (pendingAmount > 0 && selectedCustomer) {
-          const custRef = doc(db, `businesses/${currentBusiness.id}/customers`, selectedCustomer.id);
-          const custSnap = await transaction.get(custRef);
+        if (pendingAmount > 0 && selectedCustomer && custRef && custSnap) {
           const prevDebt = custSnap.exists() ? (custSnap.data().currentDebt || 0) : 0;
           const newDebt = prevDebt + pendingAmount;
           transaction.update(custRef, { currentDebt: newDebt });
@@ -332,42 +353,38 @@ export const PosView: React.FC<PosViewProps> = ({ onNavigate }) => {
         }
 
         // 4. If there's an active cash shift, update shift balances
-        if (activeShift) {
-          const shiftRef = doc(db, `businesses/${currentBusiness.id}/cashShifts`, activeShift.id);
-          const shiftSnap = await transaction.get(shiftRef);
-          if (shiftSnap.exists()) {
-            const shiftData = shiftSnap.data();
-            let newCashSales = shiftData.cashSales || 0;
-            let newNequi = shiftData.nequiSales || 0;
-            let newDaviplata = shiftData.daviplataSales || 0;
-            let newTransfer = shiftData.transferSales || 0;
-            let newCard = shiftData.cardSales || 0;
-            let newCredit = shiftData.creditSales || 0;
+        if (activeShift && shiftRef && shiftSnap && shiftSnap.exists()) {
+          const shiftData = shiftSnap.data();
+          let newCashSales = shiftData.cashSales || 0;
+          let newNequi = shiftData.nequiSales || 0;
+          let newDaviplata = shiftData.daviplataSales || 0;
+          let newTransfer = shiftData.transferSales || 0;
+          let newCard = shiftData.cardSales || 0;
+          let newCredit = shiftData.creditSales || 0;
 
-            payments.forEach(p => {
-              if (p.method === 'cash') newCashSales += p.amount;
-              else if (p.method === 'nequi') newNequi += p.amount;
-              else if (p.method === 'daviplata') newDaviplata += p.amount;
-              else if (p.method === 'transfer') newTransfer += p.amount;
-              else if (p.method === 'card') newCard += p.amount;
-            });
+          payments.forEach(p => {
+            if (p.method === 'cash') newCashSales += p.amount;
+            else if (p.method === 'nequi') newNequi += p.amount;
+            else if (p.method === 'daviplata') newDaviplata += p.amount;
+            else if (p.method === 'transfer') newTransfer += p.amount;
+            else if (p.method === 'card') newCard += p.amount;
+          });
 
-            if (pendingAmount > 0) {
-              newCredit += pendingAmount;
-            }
-
-            const newExpectedCash = (shiftData.initialCash || 0) + newCashSales + (shiftData.cashIn || 0) - (shiftData.cashOut || 0);
-
-            transaction.update(shiftRef, {
-              cashSales: newCashSales,
-              nequiSales: newNequi,
-              daviplataSales: newDaviplata,
-              transferSales: newTransfer,
-              cardSales: newCard,
-              creditSales: newCredit,
-              expectedCash: newExpectedCash,
-            });
+          if (pendingAmount > 0) {
+            newCredit += pendingAmount;
           }
+
+          const newExpectedCash = (shiftData.initialCash || 0) + newCashSales + (shiftData.cashIn || 0) - (shiftData.cashOut || 0);
+
+          transaction.update(shiftRef, {
+            cashSales: newCashSales,
+            nequiSales: newNequi,
+            daviplataSales: newDaviplata,
+            transferSales: newTransfer,
+            cardSales: newCard,
+            creditSales: newCredit,
+            expectedCash: newExpectedCash,
+          });
         }
       });
 
