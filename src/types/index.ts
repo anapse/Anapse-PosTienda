@@ -17,6 +17,7 @@ export interface Business {
   receiptFooter: string;
   status: BusinessStatus;
   businessType?: string;
+  planId?: string;
   planName?: string;
   planPrice?: number;
   maxProducts?: number;

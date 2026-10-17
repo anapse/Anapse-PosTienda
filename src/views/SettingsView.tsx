@@ -421,11 +421,11 @@ export const SettingsView: React.FC = () => {
           <div className="p-5 bg-gradient-to-br from-emerald-900 to-stone-900 text-white rounded-2xl border border-emerald-700 shadow-md">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-emerald-800">
               <div>
-                <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Plan Mensual</span>
-                <h3 className="text-2xl font-black text-white mt-0.5">Anapse PosTienda Pro</h3>
+                <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Plan Activo</span>
+                <h3 className="text-2xl font-black text-white mt-0.5">{currentBusiness?.planName || 'Plan Tienda'}</h3>
               </div>
               <div className="text-left sm:text-right">
-                <span className="text-3xl font-black text-amber-400">{formatCOP(PLAN_MONTHLY_PRICE_COP)}</span>
+                <span className="text-3xl font-black text-amber-400">{formatCOP(currentBusiness?.planPrice || 40000)}</span>
                 <span className="text-xs text-emerald-200 block">/ ciclo de 30 días</span>
               </div>
             </div>
@@ -433,15 +433,15 @@ export const SettingsView: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 text-xs">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>Capacidad hasta <strong>{PLAN_MAX_PRODUCTS} productos</strong></span>
+                <span>Capacidad: <strong>{currentBusiness?.maxProducts ? (currentBusiness.maxProducts > 2000 ? '+2.000 productos' : `Hasta ${currentBusiness.maxProducts} productos`) : 'Hasta 500 productos'}</strong></span>
               </div>
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>Ciclos de <strong>30 días</strong> (suspensión auto/manual)</span>
+                <span>Ciclos de <strong>30 días</strong> de servicio</span>
               </div>
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0" />
-                <span>Pre-aprobación y soporte directo</span>
+                <span>Pre-aprobación y control de suspensiones</span>
               </div>
               <div className="flex items-center gap-2">
                 <Smartphone className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -474,16 +474,16 @@ export const SettingsView: React.FC = () => {
 
             <div className="pt-2 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="text-xs text-stone-500">
-                Para renovaciones o reactivación inmediata de servicio:
+                Para renovaciones, ampliación de catálogo o cambio de plan:
               </div>
               <a
-                href={currentBusiness ? getWhatsAppRenewalUrl(currentBusiness.name, getDaysRemaining(currentBusiness.subscriptionExpiresAt)) : `https://wa.me/${SERVICE_WHATSAPP_CLEAN}`}
+                href={currentBusiness ? getWhatsAppRenewalUrl(currentBusiness.name, getDaysRemaining(currentBusiness.subscriptionExpiresAt), currentBusiness.planName, currentBusiness.planPrice) : `https://wa.me/${SERVICE_WHATSAPP_CLEAN}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition active:scale-95"
               >
                 <Smartphone className="w-3.5 h-3.5" />
-                <span>Renovar por WhatsApp (+51 912391502)</span>
+                <span>Contactar por WhatsApp (+51 912391502)</span>
               </a>
             </div>
           </div>

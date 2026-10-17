@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../firebase/authContext';
-import { Store, CircleDollarSign, UserCheck, LogOut, Menu, PlusCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { Store, CircleDollarSign, UserCheck, LogOut, Menu, PlusCircle, CheckCircle2, ShieldCheck, Zap } from 'lucide-react';
 import { formatCOP } from '../utils/currency';
 
 interface NavbarProps {
@@ -94,6 +94,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, onNavigate }) =
           >
             <PlusCircle className="w-4 h-4" />
             <span>Vender</span>
+          </button>
+
+          {/* Planes Button */}
+          <button
+            onClick={() => onNavigate('plans')}
+            className="hidden sm:flex items-center gap-1.5 bg-emerald-700/80 hover:bg-emerald-700 text-white font-bold px-2.5 py-1.5 rounded-xl text-xs border border-emerald-600 transition active:scale-95"
+            title="Ver Planes y Servicios Comerciales"
+          >
+            <Zap className="w-3.5 h-3.5 text-amber-300" />
+            <span>Planes</span>
           </button>
         </div>
 

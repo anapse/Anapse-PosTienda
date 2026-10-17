@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../firebase/authContext';
-import { BUSINESS_TYPES, PLAN_MONTHLY_PRICE_COP, PLAN_MAX_PRODUCTS, SERVICE_WHATSAPP_NUMBER } from '../utils/subscription';
+import { BUSINESS_TYPES, COMMERCIAL_PLANS, SERVICE_WHATSAPP_NUMBER } from '../utils/subscription';
 import { formatCOP } from '../utils/currency';
-import { Store, CheckCircle, Smartphone, AlertCircle } from 'lucide-react';
+import { Store, CheckCircle, Smartphone, AlertCircle, Zap, Boxes } from 'lucide-react';
 
 interface NewStoreRequestModalProps {
   onClose?: () => void;
@@ -12,6 +12,7 @@ interface NewStoreRequestModalProps {
 export const NewStoreRequestModal: React.FC<NewStoreRequestModalProps> = ({ onClose, isInitialSetup = false }) => {
   const { createBusinessRequest, user } = useAuth();
 
+  const [selectedPlanId, setSelectedPlanId] = useState<'tienda' | 'almacen' | 'comercial'>('tienda');
   const [form, setForm] = useState({
     name: '',
     businessType: BUSINESS_TYPES[0],
@@ -33,7 +34,10 @@ export const NewStoreRequestModal: React.FC<NewStoreRequestModalProps> = ({ onCl
 
     setIsSubmitting(true);
     try {
-      await createBusinessRequest(form);
+      await createBusinessRequest({
+        ...form,
+        planId: selectedPlanId,
+      });
       if (onClose) onClose();
     } catch (err: any) {
       alert('Error al enviar la solicitud: ' + (err.message || 'Error desconocido'));
@@ -56,7 +60,7 @@ export const NewStoreRequestModal: React.FC<NewStoreRequestModalProps> = ({ onCl
               </h2>
             </div>
             <p className="text-xs text-stone-500 mt-1">
-              Ingresa los datos del negocio para crear tu tienda en Anapse PosTienda.
+              Ingresa los datos del negocio y selecciona tu plan comercial en Anapse PosTienda.
             </p>
           </div>
           {onClose && (
@@ -66,13 +70,39 @@ export const NewStoreRequestModal: React.FC<NewStoreRequestModalProps> = ({ onCl
           )}
         </div>
 
-        {/* Pricing notice */}
-        <div className="p-3.5 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-center justify-between text-xs">
-          <div>
-            <span className="font-bold text-emerald-900 block">Plan Mensual Seleccionado:</span>
-            <span className="text-stone-600">Hasta {PLAN_MAX_PRODUCTS} productos • Acceso total</span>
+        {/* Plan selection selector */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-stone-800 flex items-center justify-between">
+            <span>Selecciona tu Plan Comercial:</span>
+            <span className="text-[10px] text-stone-500 font-normal">Renovable cada 30 días</span>
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            {COMMERCIAL_PLANS.map((plan) => {
+              const isSelected = selectedPlanId === plan.id;
+              return (
+                <button
+                  type="button"
+                  key={plan.id}
+                  onClick={() => setSelectedPlanId(plan.id)}
+                  className={`p-2.5 rounded-2xl text-left border transition-all ${
+                    isSelected
+                      ? 'border-emerald-600 bg-emerald-50/80 ring-2 ring-emerald-600/20'
+                      : 'border-stone-200 bg-stone-50 hover:bg-white hover:border-stone-300'
+                  }`}
+                >
+                  <p className={`font-black text-xs ${isSelected ? 'text-emerald-900' : 'text-stone-800'}`}>
+                    {plan.name}
+                  </p>
+                  <p className="text-[11px] font-black text-stone-900 mt-0.5">
+                    {formatCOP(plan.priceCOP)}
+                  </p>
+                  <p className="text-[10px] text-stone-500 mt-0.5 leading-tight font-medium">
+                    {plan.maxProducts === 500 ? 'Hasta 500 prod.' : plan.maxProducts === 2000 ? 'Hasta 2.000 prod.' : '+2.000 prod.'}
+                  </p>
+                </button>
+              );
+            })}
           </div>
-          <span className="text-base font-black text-emerald-800">{formatCOP(PLAN_MONTHLY_PRICE_COP)} / mes</span>
         </div>
 
         {/* Form */}

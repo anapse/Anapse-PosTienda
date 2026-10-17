@@ -122,12 +122,18 @@ export const PendingApprovalView: React.FC = () => {
                 <span className="font-bold text-stone-800">{currentBusiness.businessType || 'Comercio General'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-stone-500">Tarifa Plan Mensual:</span>
-                <span className="font-black text-emerald-700">{formatCOP(PLAN_MONTHLY_PRICE_COP)} / mes</span>
+                <span className="text-stone-500">Plan Seleccionado:</span>
+                <span className="font-bold text-stone-900">{currentBusiness.planName || 'Plan Tienda'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-stone-500">Tarifa Mensual:</span>
+                <span className="font-black text-emerald-700">{formatCOP(currentBusiness.planPrice || 40000)} / mes</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-stone-500">Capacidad Máxima:</span>
-                <span className="font-semibold text-stone-700">Hasta {PLAN_MAX_PRODUCTS} productos</span>
+                <span className="font-semibold text-stone-700">
+                  {currentBusiness.maxProducts ? (currentBusiness.maxProducts > 2000 ? '+2.000 productos (Sin límite)' : `Hasta ${currentBusiness.maxProducts} productos`) : 'Hasta 500 productos'}
+                </span>
               </div>
             </div>
           )}

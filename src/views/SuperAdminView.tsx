@@ -7,8 +7,8 @@ import {
   getDaysRemaining, 
   SERVICE_WHATSAPP_NUMBER, 
   SERVICE_WHATSAPP_CLEAN, 
-  PLAN_MONTHLY_PRICE_COP, 
-  PLAN_MAX_PRODUCTS 
+  COMMERCIAL_PLANS,
+  CommercialPlan
 } from '../utils/subscription';
 import { 
   ShieldCheck, 
@@ -23,11 +23,21 @@ import {
   Calendar,
   Lock,
   Unlock,
-  Search
+  Search,
+  Boxes,
+  Zap
 } from 'lucide-react';
 
 export const SuperAdminView: React.FC = () => {
-  const { allBusinesses, approveBusiness, suspendBusiness, reactivateBusiness, extendSubscription, deleteBusiness } = useAuth();
+  const { 
+    allBusinesses, 
+    approveBusiness, 
+    suspendBusiness, 
+    reactivateBusiness, 
+    extendSubscription, 
+    deleteBusiness,
+    changeBusinessPlan
+  } = useAuth();
 
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -137,10 +147,14 @@ export const SuperAdminView: React.FC = () => {
             </p>
           </div>
 
-          <div className="bg-stone-800 p-3.5 rounded-xl border border-stone-700 text-right text-xs">
-            <span className="text-stone-400 block">Tarifa Oficial Establecida:</span>
-            <span className="text-base font-black text-amber-400">$ 40.000 COP / mes</span>
-            <span className="text-[11px] text-stone-300 block">Hasta 500 productos por tienda</span>
+          <div className="bg-stone-850 p-3.5 rounded-xl border border-stone-700 text-xs space-y-1 sm:text-right">
+            <span className="text-stone-400 font-bold block">Planes Comerciales Disponibles:</span>
+            <div className="flex flex-wrap sm:justify-end gap-1.5 text-[11px]">
+              <span className="bg-stone-800 text-emerald-400 px-2 py-0.5 rounded font-mono font-bold">Tienda: $40k</span>
+              <span className="bg-stone-800 text-amber-400 px-2 py-0.5 rounded font-mono font-bold">Almacén: $60k</span>
+              <span className="bg-stone-800 text-purple-300 px-2 py-0.5 rounded font-mono font-bold">Comercial: $90k</span>
+            </div>
+            <span className="text-[10px] text-stone-400 block">Límites definidos por la app (500 / 2.000 / ilimitado)</span>
           </div>
         </div>
       </div>
@@ -221,6 +235,7 @@ export const SuperAdminView: React.FC = () => {
                 <tr>
                   <th className="p-3.5">Comercio</th>
                   <th className="p-3.5">Tipo de Negocio</th>
+                  <th className="p-3.5">Plan / Límite</th>
                   <th className="p-3.5">Contacto / WhatsApp</th>
                   <th className="p-3.5 text-center">Estado</th>
                   <th className="p-3.5 text-center">Contador 30 Días</th>
@@ -251,6 +266,30 @@ export const SuperAdminView: React.FC = () => {
                         <span className="font-semibold text-stone-800">
                           {b.businessType || 'Comercio General'}
                         </span>
+                      </td>
+
+                      <td className="p-3.5">
+                        <div className="space-y-1">
+                          <select
+                            value={b.planId || (b.maxProducts && b.maxProducts > 2000 ? 'comercial' : b.maxProducts && b.maxProducts > 500 ? 'almacen' : 'tienda')}
+                            onChange={async (e) => {
+                              const newPlanId = e.target.value;
+                              try {
+                                await changeBusinessPlan(b.id, newPlanId);
+                              } catch (err: any) {
+                                alert('Error al cambiar plan: ' + err.message);
+                              }
+                            }}
+                            className="bg-stone-50 border border-stone-300 rounded-lg px-2 py-1 text-xs font-bold text-stone-800 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                          >
+                            <option value="tienda">Plan Tienda ($40k - 500 prod.)</option>
+                            <option value="almacen">Plan Almacén ($60k - 2.000 prod.)</option>
+                            <option value="comercial">Plan Comercial ($90k - +2.000 prod.)</option>
+                          </select>
+                          <div className="text-[10px] text-stone-500 font-medium">
+                            Límite: {b.maxProducts ? (b.maxProducts > 2000 ? '+2.000 prod.' : `${b.maxProducts} prod.`) : '500 prod.'} • {formatCOP(b.planPrice || 40000)}/mes
+                          </div>
+                        </div>
                       </td>
 
                       <td className="p-3.5">

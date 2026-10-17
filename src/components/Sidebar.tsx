@@ -13,7 +13,8 @@ import {
   Globe, 
   Settings,
   X,
-  ShieldCheck
+  ShieldCheck,
+  Zap
 } from 'lucide-react';
 import { useAuth } from '../firebase/authContext';
 
@@ -39,7 +40,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, isOpe
     { id: 'cash', label: '9. Caja Diaria', icon: CircleDollarSign, roles: ['owner', 'admin', 'cashier'] },
     { id: 'reports', label: '10. Reportes y Ganancias', icon: BarChart3, roles: ['owner', 'admin'] },
     { id: 'catalog', label: '11. Catálogo Online', icon: Globe, roles: ['owner', 'admin'] },
-    { id: 'settings', label: '12. Configuración y DIAN', icon: Settings, roles: ['owner', 'admin'] },
+    { id: 'plans', label: '12. Planes y Servicios', icon: Zap, roles: ['owner', 'admin', 'cashier'], highlight: true },
+    { id: 'settings', label: '13. Configuración y DIAN', icon: Settings, roles: ['owner', 'admin'] },
   ];
 
   if (isSuperAdmin) {

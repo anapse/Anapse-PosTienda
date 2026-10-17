@@ -16,6 +16,7 @@ import { OnlineCatalogView } from './views/OnlineCatalogView';
 import { SettingsView } from './views/SettingsView';
 import { SuperAdminView } from './views/SuperAdminView';
 import { PendingApprovalView } from './views/PendingApprovalView';
+import { PlansServicesView } from './views/PlansServicesView';
 import { SubscriptionBanner } from './components/SubscriptionBanner';
 import { NewStoreRequestModal } from './components/NewStoreRequestModal';
 import { isSubscriptionExpired, SERVICE_WHATSAPP_NUMBER, PLAN_MONTHLY_PRICE_COP, PLAN_MAX_PRODUCTS } from './utils/subscription';
@@ -115,33 +116,42 @@ function MainApp() {
           </h1>
 
           <p className="text-sm sm:text-base text-stone-300 max-w-2xl mx-auto leading-relaxed">
-            Inspirado en la agilidad de Kyte, adaptado 100% al comercio colombiano: caja rápida para celular y computador, cobros con Nequi y Daviplata, el cuaderno de fiados digital con cobro por WhatsApp, control de inventario y catálogo online propio.
+            Diseñado 100% para el comercio colombiano: caja rápida para celular y computador, cobros con Nequi y Daviplata, el cuaderno de fiados digital con cobro por WhatsApp, control de inventario y catálogo online propio.
           </p>
 
-          {/* Plan & Pricing Box */}
-          <div className="max-w-md mx-auto bg-stone-800/90 border border-amber-400/50 rounded-2xl p-4 text-left shadow-lg">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Plan Oficial Anapse</span>
-              <span className="text-xl font-black text-white">{formatCOP(PLAN_MONTHLY_PRICE_COP)} <span className="text-xs font-normal text-stone-400">/ mes</span></span>
+          {/* Commercial Plans Summary Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-3xl mx-auto text-left">
+            <div className="bg-stone-800/90 border border-emerald-500/60 rounded-2xl p-4 shadow-md relative">
+              <span className="text-[10px] bg-emerald-700 text-white font-black px-2 py-0.5 rounded-full uppercase">
+                Plan Tienda
+              </span>
+              <p className="text-xl font-black text-white mt-1.5">{formatCOP(40000)} <span className="text-[11px] font-normal text-stone-400">/ mes</span></p>
+              <p className="text-xs font-bold text-amber-300 mt-0.5">Hasta 500 productos</p>
+              <p className="text-[11px] text-stone-300 mt-1">Ventas, inventario, caja, clientes, fiado y reportes.</p>
             </div>
-            <ul className="mt-2 space-y-1 text-xs text-stone-300">
-              <li className="flex items-center gap-1.5">
-                <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Capacidad de hasta <strong>{PLAN_MAX_PRODUCTS} productos</strong> en inventario.</span>
-              </li>
-              <li className="flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-amber-400" />
-                <span>Ciclos de servicio de <strong>30 días</strong> con suspensión automática o manual.</span>
-              </li>
-              <li className="flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
-                <span>Cuentas activadas y pre-aprobadas por el Administrador.</span>
-              </li>
-              <li className="flex items-center gap-1.5">
-                <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Atención y pagos: <strong>{SERVICE_WHATSAPP_NUMBER}</strong> (Solo WhatsApp).</span>
-              </li>
-            </ul>
+
+            <div className="bg-stone-800/90 border border-stone-700 rounded-2xl p-4 shadow-md">
+              <span className="text-[10px] bg-stone-700 text-stone-200 font-black px-2 py-0.5 rounded-full uppercase">
+                Plan Almacén
+              </span>
+              <p className="text-xl font-black text-white mt-1.5">{formatCOP(60000)} <span className="text-[11px] font-normal text-stone-400">/ mes</span></p>
+              <p className="text-xs font-bold text-amber-300 mt-0.5">501 – 2.000 productos</p>
+              <p className="text-[11px] text-stone-300 mt-1">Más capacidad de catálogo y herramientas adicionales de inventario.</p>
+            </div>
+
+            <div className="bg-stone-800/90 border border-purple-500/50 rounded-2xl p-4 shadow-md">
+              <span className="text-[10px] bg-purple-900 text-purple-200 font-black px-2 py-0.5 rounded-full uppercase">
+                Plan Comercial
+              </span>
+              <p className="text-xl font-black text-white mt-1.5">{formatCOP(90000)} <span className="text-[11px] font-normal text-stone-400">/ mes</span></p>
+              <p className="text-xs font-bold text-amber-300 mt-0.5">Más de 2.000 productos</p>
+              <p className="text-[11px] text-stone-300 mt-1">Para catálogos grandes y administración más avanzada.</p>
+            </div>
+          </div>
+
+          <div className="text-xs text-stone-400 max-w-lg mx-auto flex items-center justify-center gap-2">
+            <Smartphone className="w-4 h-4 text-emerald-400" />
+            <span>Soporte oficial y activaciones: <strong>{SERVICE_WHATSAPP_NUMBER}</strong> (Solo WhatsApp)</span>
           </div>
 
           {/* Action Login Buttons */}
@@ -264,6 +274,8 @@ function MainApp() {
         return <ReportsView />;
       case 'catalog':
         return <OnlineCatalogView />;
+      case 'plans':
+        return <PlansServicesView onNavigate={setCurrentView} />;
       case 'settings':
         return <SettingsView />;
       default:

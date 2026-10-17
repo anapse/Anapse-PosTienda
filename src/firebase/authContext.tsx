@@ -20,7 +20,15 @@ import {
 } from 'firebase/firestore';
 import { auth, db, googleProvider, handleFirestoreError, OperationType, testConnection } from './config';
 import { Business, BusinessMember, CashShift, UserRole, BusinessStatus } from '../types';
-import { SUPER_ADMIN_EMAIL, PLAN_MONTHLY_PRICE_COP, PLAN_MAX_PRODUCTS, getDaysRemaining } from '../utils/subscription';
+import { 
+  SUPER_ADMIN_EMAIL, 
+  PLAN_MONTHLY_PRICE_COP, 
+  PLAN_MAX_PRODUCTS, 
+  COMMERCIAL_PLANS, 
+  CommercialPlan, 
+  getPlanById,
+  getDaysRemaining 
+} from '../utils/subscription';
 
 interface AuthContextType {
   user: User | null;
@@ -42,13 +50,15 @@ interface AuthContextType {
     nit: string;
     address: string;
     city: string;
+    planId?: string;
   }) => Promise<Business>;
   selectBusiness: (business: Business) => void;
   refreshBusiness: () => Promise<void>;
   setActiveShift: (shift: CashShift | null) => void;
   canAccess: (requiredRole: UserRole) => boolean;
-  // Super Admin actions
-  approveBusiness: (businessId: string, days?: number) => Promise<void>;
+  // Super Admin & Plan actions
+  approveBusiness: (businessId: string, days?: number, planId?: string) => Promise<void>;
+  changeBusinessPlan: (businessId: string, planId: string) => Promise<void>;
   suspendBusiness: (businessId: string) => Promise<void>;
   reactivateBusiness: (businessId: string) => Promise<void>;
   extendSubscription: (businessId: string, additionalDays?: number) => Promise<void>;
@@ -223,6 +233,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     nit: string;
     address: string;
     city: string;
+    planId?: string;
   }): Promise<Business> => {
     if (!user) throw new Error('Debe iniciar sesión para solicitar su tienda.');
 
@@ -242,6 +253,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
       : undefined;
 
+    const chosenPlan = getPlanById(params.planId || 'tienda');
+
     const newStore: Business = {
       id: bizId,
       name: params.name,
@@ -258,9 +271,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       status: initialStatus,
       businessType: params.businessType,
       merchantContactName: params.contactName || user.displayName || 'Comerciante',
-      planName: 'Plan Mensual Anapse ($40.000 COP)',
-      planPrice: PLAN_MONTHLY_PRICE_COP,
-      maxProducts: PLAN_MAX_PRODUCTS,
+      planId: chosenPlan.id,
+      planName: chosenPlan.name,
+      planPrice: chosenPlan.priceCOP,
+      maxProducts: chosenPlan.maxProducts,
       requestedAt: now,
       activatedAt: isSuper ? now : undefined,
       subscriptionExpiresAt: expiresAt,
@@ -313,16 +327,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Super Admin: Approve store and activate 30 days of service
-  const approveBusiness = async (businessId: string, days: number = 30) => {
+  const approveBusiness = async (businessId: string, days: number = 30, planId?: string) => {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + days * 24 * 60 * 60 * 1000).toISOString();
 
     try {
-      await updateDoc(doc(db, 'businesses', businessId), {
+      const updatePayload: any = {
         status: 'ACTIVE',
         activatedAt: now.toISOString(),
         subscriptionExpiresAt: expiresAt,
         updatedAt: now.toISOString(),
+      };
+
+      if (planId) {
+        const plan = getPlanById(planId);
+        updatePayload.planId = plan.id;
+        updatePayload.planName = plan.name;
+        updatePayload.planPrice = plan.priceCOP;
+        updatePayload.maxProducts = plan.maxProducts;
+      }
+
+      await updateDoc(doc(db, 'businesses', businessId), updatePayload);
+      if (currentBusiness?.id === businessId) {
+        await refreshBusiness();
+      }
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `businesses/${businessId}`);
+    }
+  };
+
+  // Change business plan (Admin or Self-Upgrade)
+  const changeBusinessPlan = async (businessId: string, planId: string) => {
+    const plan = getPlanById(planId);
+    try {
+      await updateDoc(doc(db, 'businesses', businessId), {
+        planId: plan.id,
+        planName: plan.name,
+        planPrice: plan.priceCOP,
+        maxProducts: plan.maxProducts,
+        updatedAt: new Date().toISOString(),
       });
       if (currentBusiness?.id === businessId) {
         await refreshBusiness();
@@ -459,6 +502,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setActiveShift,
         canAccess,
         approveBusiness,
+        changeBusinessPlan,
         suspendBusiness,
         reactivateBusiness,
         extendSubscription,
