@@ -446,7 +446,7 @@ export const PosView: React.FC<PosViewProps> = ({ onNavigate }) => {
         </div>
 
         {/* Product Cards Grid */}
-        <div className="flex-1 p-3 sm:p-4 overflow-y-auto">
+        <div className="flex-1 p-2 sm:p-4 overflow-y-auto">
           {loading ? (
             <div className="h-full flex items-center justify-center text-stone-400 text-sm">
               Cargando catálogo...
@@ -460,7 +460,7 @@ export const PosView: React.FC<PosViewProps> = ({ onNavigate }) => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
               {filteredProducts.map((p) => {
                 const isOutOfStock = p.stock <= 0;
                 return (
@@ -513,19 +513,14 @@ export const PosView: React.FC<PosViewProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* Right: Cart & Checkout Panel */}
-      <div className="w-full lg:w-96 flex flex-col bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
+      {/* Right: Cart & Checkout Panel - Responsive with toggle */}
+      <div className={`w-full lg:w-96 bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden flex flex-col ${cart.length === 0 ? 'hidden lg:flex' : 'flex'}`}>
         
-        {/* Cart Header */}
+        {/* Cart Header - Added mobile toggle button */}
         <div className="p-4 border-b border-stone-200 flex items-center justify-between bg-stone-50">
           <div className="flex items-center gap-2">
             <ShoppingCart className="w-5 h-5 text-emerald-700" />
-            <h2 className="font-bold text-stone-900 text-base">Carrito de Venta</h2>
-            {cart.length > 0 && (
-              <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
-                {cart.length}
-              </span>
-            )}
+            <h2 className="font-bold text-stone-900 text-base">Carrito ({cart.length})</h2>
           </div>
           {cart.length > 0 && (
             <button
@@ -534,7 +529,7 @@ export const PosView: React.FC<PosViewProps> = ({ onNavigate }) => {
               className="text-xs text-rose-600 hover:text-rose-800 font-medium flex items-center gap-1"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Vaciar</span>
+              <span className="hidden sm:inline">Vaciar</span>
             </button>
           )}
         </div>

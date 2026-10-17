@@ -31,19 +31,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, onNavigate, the
             onClick={() => onNavigate('dashboard')}
             className="flex items-center gap-2 cursor-pointer select-none group"
           >
-            <div className="w-9 h-9 rounded-xl bg-amber-400 text-emerald-950 flex items-center justify-center font-black text-xl shadow-sm group-hover:scale-105 transition-transform">
-              A
+            <div className="w-8 h-8 rounded-lg bg-amber-400 text-emerald-950 flex items-center justify-center font-black text-lg shadow-sm group-hover:scale-105 transition-transform shrink-0">
+              {currentBusiness?.name?.[0]?.toUpperCase() || 'A'}
             </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-lg tracking-tight">Anapse PosTienda</span>
-                <span className="text-[10px] bg-amber-400 text-emerald-950 font-bold px-1.5 py-0.5 rounded tracking-wide uppercase">
-                  Colombia
-                </span>
-              </div>
-              <p className="text-[11px] text-emerald-200 hidden sm:block truncate max-w-[200px]">
-                {currentBusiness?.name || 'Mi Comercio'}
-              </p>
+            <div className="truncate max-w-[120px] sm:max-w-[200px]">
+              <span className="font-bold text-sm sm:text-lg tracking-tight truncate block">
+                {currentBusiness?.name || 'Anapse PosTienda'}
+              </span>
             </div>
           </div>
         </div>
