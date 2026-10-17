@@ -191,7 +191,7 @@ export const PosView: React.FC<PosViewProps> = ({ onNavigate }) => {
   const COLOMBIAN_BILLS = [2000, 5000, 10000, 20000, 50000, 100000];
 
   const handleQuickBillClick = (billAmount: number) => {
-    setCashTendered(billAmount);
+    setCashTendered(prev => prev + billAmount);
   };
 
   // Execute Sale Transaction
@@ -243,10 +243,10 @@ export const PosView: React.FC<PosViewProps> = ({ onNavigate }) => {
       businessId: currentBusiness.id,
       cashierId: user.uid,
       cashierName: user.displayName || 'Cajero',
-      customerId: selectedCustomer ? selectedCustomer.id : undefined,
+      customerId: selectedCustomer ? selectedCustomer.id : null,
       customerName: selectedCustomer ? selectedCustomer.name : 'Cliente General (Mostrador)',
-      customerPhone: selectedCustomer?.phone,
-      customerNit: selectedCustomer?.documentNumber,
+      customerPhone: selectedCustomer?.phone || null,
+      customerNit: selectedCustomer?.documentNumber || null,
       items: saleItems,
       subtotal,
       discount: totalDiscount,
@@ -258,9 +258,9 @@ export const PosView: React.FC<PosViewProps> = ({ onNavigate }) => {
       payments,
       amountPaid: totalPaid,
       pendingAmount,
-      cashReceived: cashPayment ? cashTendered : undefined,
-      changeGiven: cashPayment ? changeGiven : undefined,
-      notes: saleNotes,
+      cashReceived: cashPayment ? cashTendered : null,
+      changeGiven: cashPayment ? changeGiven : null,
+      notes: saleNotes || null,
       createdAt: nowIso,
     };
 

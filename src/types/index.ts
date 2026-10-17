@@ -117,10 +117,10 @@ export interface Sale {
   businessId: string;
   cashierId: string;
   cashierName: string;
-  customerId?: string;
-  customerName?: string;
-  customerPhone?: string;
-  customerNit?: string;
+  customerId?: string | null;
+  customerName?: string | null;
+  customerPhone?: string | null;
+  customerNit?: string | null;
   items: SaleItem[];
   subtotal: number;
   discount: number;
@@ -132,9 +132,9 @@ export interface Sale {
   payments: PaymentRecord[];
   amountPaid: number;
   pendingAmount: number; // Fiado
-  cashReceived?: number;
-  changeGiven?: number;
-  notes?: string;
+  cashReceived?: number | null;
+  changeGiven?: number | null;
+  notes?: string | null;
   createdAt: string;
   cancelledAt?: string;
   cancelReason?: string;
