@@ -1,0 +1,251 @@
+import React, { useState } from 'react';
+import { AuthProvider, useAuth } from './firebase/authContext';
+import { Navbar } from './components/Navbar';
+import { Sidebar } from './components/Sidebar';
+import { DashboardView } from './views/DashboardView';
+import { PosView } from './views/PosView';
+import { SalesHistoryView } from './views/SalesHistoryView';
+import { ProductsView } from './views/ProductsView';
+import { InventoryView } from './views/InventoryView';
+import { PurchasesView } from './views/PurchasesView';
+import { CustomersView } from './views/CustomersView';
+import { SuppliersView } from './views/SuppliersView';
+import { CashShiftView } from './views/CashShiftView';
+import { ReportsView } from './views/ReportsView';
+import { OnlineCatalogView } from './views/OnlineCatalogView';
+import { SettingsView } from './views/SettingsView';
+import { 
+  Store, 
+  Smartphone, 
+  Receipt, 
+  Users, 
+  Boxes, 
+  Globe, 
+  ArrowRight, 
+  ShieldCheck,
+  Sparkles
+} from 'lucide-react';
+
+function MainApp() {
+  const { user, loading, signInWithGoogle, signInQuickDemo, currentRole } = useAuth();
+  const [currentView, setCurrentView] = useState('dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
+
+  // Check if visitor entered via public catalog link in URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const isPublicCatalogParam = urlParams.has('catalogo');
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-stone-100 flex flex-col items-center justify-center p-4">
+        <div className="w-12 h-12 border-4 border-emerald-700 border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="font-extrabold text-stone-800 text-lg">Anapse PosTienda</p>
+        <p className="text-xs text-stone-500 mt-1">Conectando a base de datos persistente...</p>
+      </div>
+    );
+  }
+
+  // Standalone public catalog view for customers arriving via link
+  if (!user && isPublicCatalogParam) {
+    return (
+      <div className="min-h-screen bg-stone-100 flex flex-col font-sans text-stone-900">
+        <header className="bg-emerald-800 text-white shadow-md p-4 flex items-center justify-between max-w-7xl mx-auto w-full">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-amber-400 text-emerald-950 flex items-center justify-center font-black text-lg">
+              A
+            </div>
+            <span className="font-bold text-base">Anapse PosTienda • Catálogo Online</span>
+          </div>
+          <a
+            href="/"
+            className="text-xs bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-xl font-bold"
+          >
+            Acceso Tendero
+          </a>
+        </header>
+        <main className="max-w-7xl mx-auto w-full p-4 sm:p-6">
+          <OnlineCatalogView />
+        </main>
+      </div>
+    );
+  }
+
+  // Not logged in view
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-stone-900 text-stone-100 flex flex-col justify-between selection:bg-emerald-600 selection:text-white">
+        
+        {/* Top bar */}
+        <header className="p-4 sm:p-6 max-w-7xl mx-auto w-full flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-2xl bg-amber-400 text-emerald-950 flex items-center justify-center font-black text-2xl shadow-md">
+              A
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-extrabold text-xl text-white tracking-tight">Anapse PosTienda</span>
+                <span className="text-[10px] bg-amber-400 text-emerald-950 font-black px-2 py-0.5 rounded uppercase">
+                  Colombia
+                </span>
+              </div>
+              <p className="text-xs text-emerald-400">Punto de Venta, Caja e Inventario para Tiendas y Minimarkets</p>
+            </div>
+          </div>
+        </header>
+
+        {/* Hero Body */}
+        <main className="max-w-4xl mx-auto px-4 py-8 sm:py-12 text-center space-y-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-900/60 border border-emerald-700 text-emerald-300 text-xs font-semibold">
+            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+            <span>Diseñado para tenderos y comerciantes de Colombia</span>
+          </div>
+
+          <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
+            Administra tu tienda fácil y rápido en <span className="text-amber-400">Pesos Colombianos (COP)</span>
+          </h1>
+
+          <p className="text-sm sm:text-base text-stone-300 max-w-2xl mx-auto leading-relaxed">
+            Inspirado en la agilidad de Kyte, adaptado 100% al comercio colombiano: caja rápida para celular y computador, cobros con Nequi y Daviplata, el cuaderno de fiados digital con cobro por WhatsApp, control de inventario y catálogo online propio.
+          </p>
+
+          {/* Action Login Buttons */}
+          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto">
+            <button
+              onClick={async () => {
+                setIsAuthLoading(true);
+                try {
+                  await signInWithGoogle();
+                } catch (e) {
+                  console.error(e);
+                } finally {
+                  setIsAuthLoading(false);
+                }
+              }}
+              disabled={isAuthLoading}
+              className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 bg-white hover:bg-stone-100 text-stone-900 font-bold px-6 py-3.5 rounded-2xl shadow-lg transition active:scale-98"
+            >
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+              <span>Iniciar con Google</span>
+            </button>
+
+            <button
+              onClick={async () => {
+                setIsAuthLoading(true);
+                try {
+                  await signInQuickDemo();
+                } catch (e) {
+                  console.error(e);
+                } finally {
+                  setIsAuthLoading(false);
+                }
+              }}
+              disabled={isAuthLoading}
+              className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-6 py-3.5 rounded-2xl shadow-lg transition active:scale-98"
+            >
+              <span>Entrar en Modo Prueba</span>
+              <ArrowRight className="w-4 h-4 text-emerald-300" />
+            </button>
+          </div>
+
+          {/* Feature highlights */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-8 text-left">
+            <div className="p-4 rounded-2xl bg-stone-800/80 border border-stone-700">
+              <Receipt className="w-5 h-5 text-amber-400 mb-2" />
+              <h2 className="font-bold text-sm text-white">Caja Rápida POS</h2>
+              <p className="text-xs text-stone-400 mt-1">Cobros en efectivo, Nequi, Daviplata y ticket térmico.</p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-stone-800/80 border border-stone-700">
+              <Users className="w-5 h-5 text-emerald-400 mb-2" />
+              <h2 className="font-bold text-sm text-white">Cuaderno de Fiados</h2>
+              <p className="text-xs text-stone-400 mt-1">Saldos pendientes, abonos y extractos a WhatsApp.</p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-stone-800/80 border border-stone-700">
+              <Boxes className="w-5 h-5 text-teal-400 mb-2" />
+              <h2 className="font-bold text-sm text-white">Stock y Balanza</h2>
+              <p className="text-xs text-stone-400 mt-1">Kardex, alertas de agotados y venta por peso en balanza.</p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-stone-800/80 border border-stone-700">
+              <Globe className="w-5 h-5 text-blue-400 mb-2" />
+              <h2 className="font-bold text-sm text-white">Catálogo Online</h2>
+              <p className="text-xs text-stone-400 mt-1">Pedidos directos a tu WhatsApp sin pagar comisiones.</p>
+            </div>
+          </div>
+        </main>
+
+        {/* Footer */}
+        <footer className="p-4 border-t border-stone-800 text-center text-xs text-stone-500">
+          Anapse PosTienda Colombia • Moneda: Pesos Colombianos (COP) • Conforme a la normativa comercial
+        </footer>
+      </div>
+    );
+  }
+
+  // Render authorized views
+  const renderView = () => {
+    switch (currentView) {
+      case 'dashboard':
+        return <DashboardView onNavigate={setCurrentView} />;
+      case 'pos':
+        return <PosView onNavigate={setCurrentView} />;
+      case 'sales':
+        return <SalesHistoryView />;
+      case 'products':
+        return <ProductsView />;
+      case 'inventory':
+        return <InventoryView />;
+      case 'purchases':
+        return <PurchasesView />;
+      case 'customers':
+        return <CustomersView />;
+      case 'suppliers':
+        return <SuppliersView />;
+      case 'cash':
+        return <CashShiftView />;
+      case 'reports':
+        return <ReportsView />;
+      case 'catalog':
+        return <OnlineCatalogView />;
+      case 'settings':
+        return <SettingsView />;
+      default:
+        return <DashboardView onNavigate={setCurrentView} />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-stone-100 flex flex-col font-sans text-stone-900 selection:bg-emerald-600 selection:text-white">
+      {/* Top Navbar */}
+      <Navbar 
+        onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
+        onNavigate={setCurrentView} 
+      />
+
+      <div className="flex-1 flex max-w-7xl w-full mx-auto">
+        {/* Sidebar */}
+        <Sidebar 
+          currentView={currentView}
+          onNavigate={setCurrentView}
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+        />
+
+        {/* Main Content Area */}
+        <main className="flex-1 p-3 sm:p-6 lg:p-8 min-w-0 overflow-y-auto">
+          {renderView()}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <MainApp />
+    </AuthProvider>
+  );
+}

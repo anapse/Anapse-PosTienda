@@ -1,0 +1,108 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isBusinessOwner(businessId) {
+      return isSignedIn() && (
+        get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid
+      );
+    }
+
+    function isBusinessMember(businessId) {
+      return isSignedIn() && (
+        isBusinessOwner(businessId) ||
+        exists(/databases/$(database)/documents/businesses/$(businessId)/members/$(request.auth.uid))
+      );
+    }
+
+    // Businesses collection
+    match /businesses/{businessId} {
+      // Owner or members can read; or public can read if catalog is active
+      allow get: if isBusinessMember(businessId) || resource.data.catalogActive == true;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      
+      // Creating business requires authenticated user who sets themselves as owner
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      
+      // Update/Delete requires owner
+      allow update: if isBusinessOwner(businessId);
+      allow delete: if isBusinessOwner(businessId);
+
+      // Business members subcollection
+      match /members/{memberId} {
+        allow read: if isBusinessMember(businessId);
+        allow create: if isSignedIn() && (
+          request.auth.uid == memberId || isBusinessOwner(businessId)
+        );
+        allow update, delete: if isBusinessOwner(businessId);
+      }
+
+      // Products subcollection
+      match /products/{productId} {
+        // Members can read all products; public can read active products for online catalog
+        allow get: if isBusinessMember(businessId) || resource.data.active == true;
+        allow list: if isBusinessMember(businessId) || resource.data.active == true;
+        allow create, update, delete: if isBusinessMember(businessId);
+      }
+
+      // Stock movements subcollection
+      match /stockMovements/{movementId} {
+        allow read, write: if isBusinessMember(businessId);
+      }
+
+      // Sales subcollection
+      match /sales/{saleId} {
+        allow read, write: if isBusinessMember(businessId);
+      }
+
+      // Customers and fiado subcollection
+      match /customers/{customerId} {
+        allow read, write: if isBusinessMember(businessId);
+      }
+
+      // Customer debt/credit movements subcollection
+      match /customerMovements/{movementId} {
+        allow read, write: if isBusinessMember(businessId);
+      }
+
+      // Cash shifts (caja diaria) subcollection
+      match /cashShifts/{shiftId} {
+        allow read, write: if isBusinessMember(businessId);
+      }
+
+      // Cash in/out movements subcollection
+      match /cashMovements/{movementId} {
+        allow read, write: if isBusinessMember(businessId);
+      }
+
+      // Suppliers subcollection
+      match /suppliers/{supplierId} {
+        allow read, write: if isBusinessMember(businessId);
+      }
+
+      // Purchases subcollection
+      match /purchases/{purchaseId} {
+        allow read, write: if isBusinessMember(businessId);
+      }
+
+      // Catalog online orders subcollection
+      match /catalogOrders/{orderId} {
+        // Public can submit an order from online catalog
+        allow create: if request.resource.data.businessId == businessId;
+        // Only business members can view, manage, or update orders
+        allow read, update, delete: if isBusinessMember(businessId);
+      }
+    }
+  }
+}

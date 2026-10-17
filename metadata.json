@@ -1,0 +1,8 @@
+{
+  "name": "TiendaPOS Colombia",
+  "description": "Sistema de ventas, caja rápida, inventario, fiados, compras y catálogo online en pesos colombianos (COP) para tiendas de barrio y minimarkets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
