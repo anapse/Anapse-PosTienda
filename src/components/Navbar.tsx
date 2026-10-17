@@ -1,14 +1,16 @@
 import React from 'react';
 import { useAuth } from '../firebase/authContext';
-import { Store, CircleDollarSign, UserCheck, LogOut, Menu, PlusCircle, CheckCircle2, ShieldCheck, Zap } from 'lucide-react';
+import { Store, CircleDollarSign, UserCheck, LogOut, Menu, PlusCircle, CheckCircle2, ShieldCheck, Zap, Sun, Moon } from 'lucide-react';
 import { formatCOP } from '../utils/currency';
 
 interface NavbarProps {
   onToggleSidebar: () => void;
   onNavigate: (view: string) => void;
+  theme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, onNavigate }) => {
+export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, onNavigate, theme = 'light', onToggleTheme }) => {
   const { user, currentBusiness, businesses, currentRole, activeShift, selectBusiness, signOutUser, isSuperAdmin } = useAuth();
 
   return (
@@ -128,6 +130,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, onNavigate }) =
               Rol: {currentRole === 'owner' ? 'Propietario' : currentRole === 'admin' ? 'Administrador' : 'Cajero'}
             </span>
           </div>
+
+          {onToggleTheme && (
+            <button
+              onClick={onToggleTheme}
+              title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+              className="p-2 rounded-xl text-emerald-200 hover:text-white hover:bg-emerald-700 transition"
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4" />}
+            </button>
+          )}
 
           <button
             onClick={signOutUser}

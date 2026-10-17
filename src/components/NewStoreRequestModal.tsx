@@ -63,11 +63,15 @@ export const NewStoreRequestModal: React.FC<NewStoreRequestModalProps> = ({ onCl
               Ingresa los datos del negocio y selecciona tu plan comercial en Anapse PosTienda.
             </p>
           </div>
-          {onClose && (
-            <button onClick={onClose} className="text-stone-400 hover:text-stone-600 font-bold text-lg">
-              ✕
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={onClose} 
+              className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 rounded-xl text-stone-700 font-black text-xs transition flex items-center gap-1 shadow-xs"
+              title="Cerrar / Volver"
+            >
+              <span>✕ Cerrar</span>
             </button>
-          )}
+          </div>
         </div>
 
         {/* Plan selection selector */}

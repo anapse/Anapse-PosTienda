@@ -40,6 +40,16 @@ function MainApp() {
   const [currentView, setCurrentView] = useState(isSuperAdmin ? 'superadmin' : 'dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [showDemoRegisterModal, setShowDemoRegisterModal] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    return (localStorage.getItem('anapse_theme') as 'light' | 'dark') || 'light';
+  });
+
+  const toggleTheme = () => {
+    const next = theme === 'light' ? 'dark' : 'light';
+    setTheme(next);
+    localStorage.setItem('anapse_theme', next);
+  };
 
   // Check if visitor entered via public catalog link in URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -284,11 +294,33 @@ function MainApp() {
   };
 
   return (
-    <div className="min-h-screen bg-stone-100 flex flex-col font-sans text-stone-900 selection:bg-emerald-600 selection:text-white">
+    <div className={`min-h-screen flex flex-col font-sans selection:bg-emerald-600 selection:text-white ${theme === 'dark' ? 'bg-stone-950 text-stone-100' : 'bg-stone-100 text-stone-900'}`}>
+      {/* Demo Mode Top Banner */}
+      {user?.isAnonymous && (
+        <div className="bg-gradient-to-r from-amber-500 to-emerald-700 text-emerald-950 px-4 py-2 font-bold text-xs sm:text-sm flex flex-col sm:flex-row items-center justify-between gap-2 shadow-md z-50">
+          <div className="flex items-center gap-2 text-white">
+            <Sparkles className="w-4 h-4 text-amber-200 animate-pulse" />
+            <span>Estás viendo el Modo de Prueba / Demo en Vivo de Anapse PosTienda. ¡Explora todas las funciones!</span>
+          </div>
+          <button
+            onClick={() => setShowDemoRegisterModal(true)}
+            className="bg-white hover:bg-stone-100 text-emerald-950 px-3.5 py-1.5 rounded-xl text-xs font-black shadow-sm transition active:scale-95"
+          >
+            ¡Registra tu Negocio y Obtén 30 Días!
+          </button>
+        </div>
+      )}
+
+      {showDemoRegisterModal && (
+        <NewStoreRequestModal onClose={() => setShowDemoRegisterModal(false)} isInitialSetup={false} />
+      )}
+
       {/* Top Navbar */}
       <Navbar 
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
         onNavigate={setCurrentView} 
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
       <div className="flex-1 flex max-w-7xl w-full mx-auto">
