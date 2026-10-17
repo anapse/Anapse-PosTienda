@@ -47,6 +47,7 @@ function MainApp() {
     return (localStorage.getItem('anapse_theme') as 'light' | 'dark') || 'light';
   });
   const [publicTab, setPublicTab] = useState<'inicio' | 'planes' | 'servicios'>('inicio');
+  const [showPublicRegisterModal, setShowPublicRegisterModal] = useState(false);
 
   const toggleTheme = () => {
     const next = theme === 'light' ? 'dark' : 'light';
@@ -196,7 +197,7 @@ function MainApp() {
               </div>
 
               <h1 className={`text-3xl sm:text-6xl font-black ${isDark ? 'text-white' : 'text-stone-900'} tracking-tight leading-tight`}>
-                Administra tu tienda fácil y rápido en <span className="text-amber-400">Pesos Colombianos (COP)</span>
+                Administra tu tienda fácil y rápido
               </h1>
 
               <p className={`text-sm sm:text-base ${isDark ? 'text-stone-300' : 'text-stone-600'} max-w-2xl mx-auto leading-relaxed`}>
@@ -240,12 +241,27 @@ function MainApp() {
                     }
                   }}
                   disabled={isAuthLoading}
-                  className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-6 py-3.5 rounded-2xl shadow-lg transition active:scale-98"
+                  className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-5 py-3.5 rounded-2xl shadow-lg transition active:scale-98 text-xs sm:text-sm"
                 >
-                  <span>Entrar en Modo Prueba</span>
+                  <span>Modo Prueba</span>
                   <ArrowRight className="w-4 h-4 text-emerald-300" />
                 </button>
+
+                <button
+                  onClick={() => setShowPublicRegisterModal(true)}
+                  className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-emerald-950 font-bold px-5 py-3.5 rounded-2xl shadow-lg transition active:scale-98 text-xs sm:text-sm"
+                >
+                  <Store className="w-4 h-4" />
+                  <span>Registra tu Negocio</span>
+                </button>
               </div>
+
+              {showPublicRegisterModal && (
+                <NewStoreRequestModal 
+                  onClose={() => setShowPublicRegisterModal(false)} 
+                  isInitialSetup={true} 
+                />
+              )}
 
               {/* Feature highlights */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 text-left">

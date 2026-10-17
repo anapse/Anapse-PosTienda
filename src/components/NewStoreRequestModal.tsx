@@ -10,7 +10,7 @@ interface NewStoreRequestModalProps {
 }
 
 export const NewStoreRequestModal: React.FC<NewStoreRequestModalProps> = ({ onClose, isInitialSetup = false }) => {
-  const { createBusinessRequest, user, signOutUser } = useAuth();
+  const { createBusinessRequest, user, signOutUser, signInWithGoogle } = useAuth();
 
   const handleClose = () => {
     if (onClose) {
@@ -81,6 +81,26 @@ export const NewStoreRequestModal: React.FC<NewStoreRequestModalProps> = ({ onCl
             </button>
           </div>
         </div>
+
+        {!user && (
+          <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-center justify-between gap-3 text-xs">
+            <span className="text-emerald-900 font-medium">Para registrar tu tienda, inicia sesión con Google:</span>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await signInWithGoogle();
+                } catch (e) {
+                  console.error(e);
+                }
+              }}
+              className="bg-white hover:bg-stone-100 text-stone-900 font-bold px-3.5 py-2 rounded-xl shadow-xs border border-stone-200 flex items-center gap-2 shrink-0 transition"
+            >
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4 h-4" />
+              <span>Iniciar con Google</span>
+            </button>
+          </div>
+        )}
 
         {/* Plan selection selector */}
         <div className="space-y-1.5">
