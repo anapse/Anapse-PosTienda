@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, setPersistence, browserSessionPersistence } from 'firebase/auth';
 import { initializeFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
@@ -13,8 +13,11 @@ export const db = initializeFirestore(
   firebaseConfig.firestoreDatabaseId
 );
 
-// Initialize Auth
+// Initialize Auth with session persistence (clears login when browser/tab is closed)
 export const auth = getAuth(app);
+setPersistence(auth, browserSessionPersistence).catch(err => {
+  console.warn('Could not set auth persistence:', err);
+});
 export const googleProvider = new GoogleAuthProvider();
 
 export enum OperationType {
