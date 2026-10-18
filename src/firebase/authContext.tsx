@@ -304,8 +304,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       }
 
-      // Query user's businesses with real-time listener so approval (PENDING -> ACTIVE) is instant
-      const q = query(collection(db, 'businesses'), where('ownerId', '==', currentUser.uid));
+      // Query user's businesses with real-time listener and limit(100) to comply with Firestore rules
+      const q = query(collection(db, 'businesses'), where('ownerId', '==', currentUser.uid), limit(100));
       onSnapshot(q, (snapshot) => {
         const userBusinesses: Business[] = [];
         snapshot.forEach((d) => {
