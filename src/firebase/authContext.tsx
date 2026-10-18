@@ -304,34 +304,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       }
 
-      // Query user's businesses
+      // Query user's businesses with real-time listener so approval (PENDING -> ACTIVE) is instant
       const q = query(collection(db, 'businesses'), where('ownerId', '==', currentUser.uid));
-      const querySnapshot = await getDocs(q);
-      const userBusinesses: Business[] = [];
-      querySnapshot.forEach((d) => {
-        userBusinesses.push({ id: d.id, ...d.data() } as Business);
+      onSnapshot(q, (snapshot) => {
+        const userBusinesses: Business[] = [];
+        snapshot.forEach((d) => {
+          userBusinesses.push({ id: d.id, ...d.data() } as Business);
+        });
+
+        setBusinesses(userBusinesses);
+
+        if (userBusinesses.length > 0) {
+          const storedId = localStorage.getItem('active_business_id');
+          const found = userBusinesses.find((b) => b.id === storedId) || userBusinesses[0];
+          setCurrentBusiness(found);
+          setCurrentRole('owner');
+        } else if (isSuper) {
+          createSuperAdminStore(currentUser).then(adminStore => {
+            setBusinesses([adminStore]);
+            setCurrentBusiness(adminStore);
+            setCurrentRole('owner');
+          });
+        } else {
+          setCurrentBusiness(null);
+        }
+        setLoading(false);
+      }, (error) => {
+        console.warn('Error listening to user businesses:', error);
+        setLoading(false);
       });
-
-      setBusinesses(userBusinesses);
-
-      if (userBusinesses.length > 0) {
-        const storedId = localStorage.getItem('active_business_id');
-        const found = userBusinesses.find((b) => b.id === storedId) || userBusinesses[0];
-        setCurrentBusiness(found);
-        setCurrentRole('owner');
-      } else if (isSuper) {
-        // Create initial active store for Super Admin
-        const adminStore = await createSuperAdminStore(currentUser);
-        setBusinesses([adminStore]);
-        setCurrentBusiness(adminStore);
-        setCurrentRole('owner');
-      } else {
-        // Regular user with no stores yet
-        setCurrentBusiness(null);
-      }
     } catch (error) {
       handleFirestoreError(error, OperationType.GET, 'businesses');
-    } finally {
       setLoading(false);
     }
   };
@@ -759,11 +762,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await signInWithPopup(auth, googleProvider);
     } catch (error: any) {
       console.error('Google Sign-In Error:', error);
-      if (error?.code === 'auth/popup-blocked' || error?.code === 'auth/cancelled-popup-request') {
-        await signInAnonymously(auth);
-      } else {
-        throw error;
-      }
+      throw error;
     }
   };
 
