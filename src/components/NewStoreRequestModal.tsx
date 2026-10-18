@@ -15,8 +15,6 @@ export const NewStoreRequestModal: React.FC<NewStoreRequestModalProps> = ({ onCl
   const handleClose = () => {
     if (onClose) {
       onClose();
-    } else {
-      signOutUser().catch(() => window.location.reload());
     }
   };
 
