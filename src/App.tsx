@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './firebase/authContext';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
@@ -48,6 +48,14 @@ function MainApp() {
   });
   const [publicTab, setPublicTab] = useState<'inicio' | 'planes' | 'servicios'>('inicio');
   const [showPublicRegisterModal, setShowPublicRegisterModal] = useState(false);
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
 
   const toggleTheme = () => {
     const next = theme === 'light' ? 'dark' : 'light';
@@ -403,7 +411,7 @@ function MainApp() {
   const renderView = () => {
     switch (currentView) {
       case 'superadmin':
-        return <SuperAdminView />;
+        return <SuperAdminView onNavigate={setCurrentView} />;
       case 'dashboard':
         return <DashboardView onNavigate={setCurrentView} />;
       case 'pos':
@@ -431,22 +439,22 @@ function MainApp() {
       case 'settings':
         return <SettingsView />;
       default:
-        return isSuperAdmin ? <SuperAdminView /> : <DashboardView onNavigate={setCurrentView} />;
+        return isSuperAdmin ? <SuperAdminView onNavigate={setCurrentView} /> : <DashboardView onNavigate={setCurrentView} />;
     }
   };
 
   return (
-    <div className={`min-h-screen flex flex-col font-sans selection:bg-emerald-600 selection:text-white ${theme === 'dark' ? 'bg-stone-950 text-stone-100' : 'bg-stone-100 text-stone-900'}`}>
-      {/* Demo Mode Top Banner */}
-      {user?.isAnonymous && (
-        <div className="bg-gradient-to-r from-amber-500 to-emerald-700 text-emerald-950 px-4 py-2 font-bold text-xs sm:text-sm flex flex-col sm:flex-row items-center justify-between gap-2 shadow-md z-50">
+    <div className={`min-h-screen flex flex-col font-sans selection:bg-emerald-600 selection:text-white w-full max-w-full overflow-x-hidden ${theme === 'dark' ? 'bg-stone-950 text-stone-100' : 'bg-stone-100 text-stone-900'}`}>
+      {/* Demo Mode Top Banner (Only in store mode) */}
+      {user?.isAnonymous && currentView !== 'superadmin' && (
+        <div className="bg-gradient-to-r from-amber-500 to-emerald-700 text-emerald-950 px-3 sm:px-4 py-2 font-bold text-xs sm:text-sm flex flex-col sm:flex-row items-center justify-between gap-2 shadow-md z-50 w-full max-w-full overflow-x-hidden">
           <div className="flex items-center gap-2 text-white">
-            <Sparkles className="w-4 h-4 text-amber-200 animate-pulse" />
-            <span>Estás viendo el Modo de Prueba / Demo en Vivo de Anapse PosTienda. ¡Explora todas las funciones!</span>
+            <Sparkles className="w-4 h-4 text-amber-200 animate-pulse shrink-0" />
+            <span className="text-xs sm:text-sm">Estás en Modo de Prueba de Anapse PosTienda. ¡Explora todas las funciones!</span>
           </div>
           <button
             onClick={() => setShowDemoRegisterModal(true)}
-            className="bg-white hover:bg-stone-100 text-emerald-950 px-3.5 py-1.5 rounded-xl text-xs font-black shadow-sm transition active:scale-95"
+            className="bg-white hover:bg-stone-100 text-emerald-950 px-3 py-1 rounded-xl text-xs font-black shadow-sm transition active:scale-95 shrink-0"
           >
             ¡Registra tu Negocio y Obtén 30 Días!
           </button>
@@ -461,11 +469,12 @@ function MainApp() {
       <Navbar 
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
         onNavigate={setCurrentView} 
+        currentView={currentView}
         theme={theme}
         onToggleTheme={toggleTheme}
       />
 
-      <div className="flex-1 flex max-w-7xl w-full mx-auto">
+      <div className="flex-1 flex max-w-7xl w-full mx-auto min-w-0 overflow-x-hidden">
         {/* Sidebar */}
         <Sidebar 
           currentView={currentView}
@@ -475,9 +484,9 @@ function MainApp() {
         />
 
         {/* Main Content Area */}
-        <main className="flex-1 p-3 sm:p-6 lg:p-8 min-w-0 overflow-y-auto">
-          {/* Subscription 30-Day Notice */}
-          <SubscriptionBanner />
+        <main className="flex-1 p-3 sm:p-6 lg:p-8 min-w-0 overflow-y-auto overflow-x-hidden">
+          {/* Subscription 30-Day Notice (Only for store views, not superadmin) */}
+          {currentView !== 'superadmin' && <SubscriptionBanner />}
           {renderView()}
         </main>
       </div>

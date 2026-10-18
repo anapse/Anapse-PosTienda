@@ -18,8 +18,10 @@ import {
   AlertCircle, 
   Filter,
   CheckCircle2,
-  X
+  X,
+  Sparkles
 } from 'lucide-react';
+import { seedBusinessSampleData } from '../utils/sampleData';
 
 export const ProductsView: React.FC = () => {
   const { currentBusiness, currentRole } = useAuth();
@@ -68,6 +70,20 @@ export const ProductsView: React.FC = () => {
   });
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
+
+  const handleSeedProducts = async () => {
+    if (!currentBusiness) return;
+    setIsSeeding(true);
+    try {
+      await seedBusinessSampleData(currentBusiness.id);
+    } catch (err) {
+      console.error('Error seeding products:', err);
+      handleFirestoreError(err, OperationType.WRITE, `businesses/${currentBusiness.id}/products`);
+    } finally {
+      setIsSeeding(false);
+    }
+  };
 
   useEffect(() => {
     if (!currentBusiness) return;
@@ -354,6 +370,17 @@ export const ProductsView: React.FC = () => {
             <span>Exportar CSV</span>
           </button>
 
+          {products.length === 0 && !loading && (
+            <button
+              onClick={handleSeedProducts}
+              disabled={isSeeding}
+              className="flex items-center gap-1.5 bg-amber-400 hover:bg-amber-300 text-stone-950 font-black px-3.5 py-2 rounded-xl text-xs sm:text-sm shadow-sm transition active:scale-95 disabled:opacity-50"
+            >
+              <Sparkles className="w-4 h-4 text-emerald-950" />
+              <span>{isSeeding ? 'Cargando...' : 'Cargar Productos de Prueba'}</span>
+            </button>
+          )}
+
           <button
             onClick={openCreateModal}
             className="flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-4 py-2 rounded-xl text-xs sm:text-sm shadow-sm transition active:scale-95"
@@ -396,6 +423,35 @@ export const ProductsView: React.FC = () => {
       <div className="bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-stone-400 text-sm">Cargando productos...</div>
+        ) : products.length === 0 ? (
+          <div className="p-12 text-center space-y-4 max-w-md mx-auto">
+            <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 flex items-center justify-center mx-auto text-2xl shadow-inner">
+              📦
+            </div>
+            <div className="space-y-1">
+              <h3 className="font-bold text-base text-stone-900 dark:text-stone-100">Tu catálogo aún no tiene productos</h3>
+              <p className="text-xs text-stone-500 dark:text-stone-400">
+                Carga el catálogo de muestra con productos colombianos listos (Arroz Diana, Leche Colanta, Aceite Premier, Huevos, Café Sello Rojo, etc.):
+              </p>
+            </div>
+            <button
+              onClick={handleSeedProducts}
+              disabled={isSeeding}
+              className="bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white font-black px-5 py-3 rounded-xl shadow-md transition active:scale-95 inline-flex items-center gap-2 text-xs sm:text-sm"
+            >
+              {isSeeding ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Cargando productos...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 text-amber-300" />
+                  <span>⚡ Cargar Catálogo de Prueba Colombiano</span>
+                </>
+              )}
+            </button>
+          </div>
         ) : filteredProducts.length === 0 ? (
           <div className="p-12 text-center text-stone-400 space-y-2">
             <Package className="w-10 h-10 mx-auto text-stone-300" />

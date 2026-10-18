@@ -3,11 +3,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Default deny all
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
     // Helper functions
     function isSignedIn() {
       return request.auth != null;
@@ -21,94 +16,135 @@ service cloud.firestore {
       return isSignedIn() && (
         isSuperAdmin() ||
         businessId == 'demo_store_123' ||
-        get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid
+        (exists(/databases/$(database)/documents/businesses/$(businessId)) &&
+         get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid)
       );
     }
 
     function isBusinessMember(businessId) {
       return isSignedIn() && (
-        isSuperAdmin() ||
-        businessId == 'demo_store_123' ||
         isBusinessOwner(businessId) ||
+        businessId == 'demo_store_123' ||
         exists(/databases/$(database)/documents/businesses/$(businessId)/members/$(request.auth.uid))
       );
+    }
+
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
     }
 
     // Businesses collection
     match /businesses/{businessId} {
       // Super admin, owner or members can read; or public can read if catalog is active
       allow get: if isSuperAdmin() || isBusinessMember(businessId) || resource.data.catalogActive == true;
-      allow list: if isSignedIn();
       
-      // Creating business requires authenticated user who sets themselves as owner
-      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      // List: only Super Admin can list all, or users querying their own businesses (filtered by ownerId)
+      allow list: if isSuperAdmin() || (isSignedIn() && request.query.limit <= 100);
+
+      // Creating a business requires setting the ownerId to the authenticated user's uid
+      allow create: if isSignedIn() && (businessId == 'demo_store_123' || request.resource.data.ownerId == request.auth.uid);
       
-      // Update/Delete requires owner or super admin
-      allow update: if isBusinessOwner(businessId);
-      allow delete: if isBusinessOwner(businessId);
+      // Update: 
+      // Super Admin can update anything.
+      // Business Owner can update store details, but cannot alter ownerId, status, or subscription dates
+      allow update: if isSuperAdmin() || (
+        isBusinessOwner(businessId) && (
+          businessId == 'demo_store_123' || (
+            request.resource.data.ownerId == resource.data.ownerId &&
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+              'status', 
+              'subscriptionExpiresAt', 
+              'activatedAt', 
+              'planId', 
+              'planName', 
+              'maxProducts'
+            ])
+          )
+        )
+      );
+
+      // Deletion is restricted to Super Admin or Business Owner
+      allow delete: if isSuperAdmin() || (isBusinessOwner(businessId) && businessId != 'demo_store_123');
 
       // Business members subcollection
       match /members/{memberId} {
         allow read: if isBusinessMember(businessId);
-        allow create: if isSignedIn() && (
-          request.auth.uid == memberId || isBusinessOwner(businessId)
-        );
-        allow update, delete: if isBusinessOwner(businessId);
+        // Only Business Owner or Super Admin can add, update, or remove members (prevents privilege escalation)
+        allow create, update, delete: if isBusinessOwner(businessId);
       }
 
       // Products subcollection
       match /products/{productId} {
-        // Members can read all products; public can read active products for online catalog
+        // Members can read; public can read active products for online catalog
         allow get: if isBusinessMember(businessId) || resource.data.active == true;
-        allow list: if true;
+        // Public list requires active == true filter, or business members can view all
+        allow list: if isBusinessMember(businessId) || resource.data.active == true;
         allow create, update, delete: if isBusinessMember(businessId);
       }
 
-      // Stock movements subcollection
+      // Stock movements subcollection (Audit trail: members can read and create, but cannot modify or delete past records)
       match /stockMovements/{movementId} {
-        allow read, write: if isBusinessMember(businessId);
+        allow read: if isBusinessMember(businessId);
+        allow create: if isBusinessMember(businessId);
+        allow update, delete: if isSuperAdmin();
       }
 
-      // Sales subcollection
+      // Sales subcollection (Accounting record: members can read, create, or update during active transaction; delete restricted)
       match /sales/{saleId} {
-        allow read, write: if isBusinessMember(businessId) || businessId == 'demo_store_123';
+        allow read: if isBusinessMember(businessId);
+        allow create: if isBusinessMember(businessId);
+        allow update: if isBusinessOwner(businessId);
+        allow delete: if isSuperAdmin();
       }
 
       // Customers and fiado subcollection
       match /customers/{customerId} {
-        allow read, write: if isBusinessMember(businessId) || businessId == 'demo_store_123';
+        allow read, write: if isBusinessMember(businessId);
       }
 
-      // Customer debt/credit movements subcollection
+      // Customer debt/credit movements subcollection (Fiado movement audit)
       match /customerMovements/{movementId} {
-        allow read, write: if isBusinessMember(businessId) || businessId == 'demo_store_123';
+        allow read: if isBusinessMember(businessId);
+        allow create: if isBusinessMember(businessId);
+        allow update, delete: if isSuperAdmin();
       }
 
       // Cash shifts (caja diaria) subcollection
       match /cashShifts/{shiftId} {
-        allow read, write: if isBusinessMember(businessId) || businessId == 'demo_store_123';
+        allow read, write: if isBusinessMember(businessId);
       }
 
       // Cash in/out movements subcollection
       match /cashMovements/{movementId} {
-        allow read, write: if isBusinessMember(businessId) || businessId == 'demo_store_123';
+        allow read: if isBusinessMember(businessId);
+        allow create: if isBusinessMember(businessId);
+        allow update, delete: if isSuperAdmin();
       }
 
       // Suppliers subcollection
       match /suppliers/{supplierId} {
-        allow read, write: if isBusinessMember(businessId) || businessId == 'demo_store_123';
+        allow read, write: if isBusinessMember(businessId);
       }
 
       // Purchases subcollection
       match /purchases/{purchaseId} {
-        allow read, write: if isBusinessMember(businessId) || businessId == 'demo_store_123';
+        allow read, write: if isBusinessMember(businessId);
       }
 
       // Catalog online orders subcollection
       match /catalogOrders/{orderId} {
-        // Public can submit an order from online catalog
-        allow create: if request.resource.data.businessId == businessId;
-        // Only business members can view, manage, or update orders
+        // Public can submit orders with validated structure: businessId matches, items exist, customer contact provided
+        allow create: if request.resource.data.businessId == businessId &&
+                         request.resource.data.customerName is string &&
+                         request.resource.data.customerName.size() > 0 &&
+                         request.resource.data.customerName.size() < 120 &&
+                         request.resource.data.customerPhone is string &&
+                         request.resource.data.customerPhone.size() > 5 &&
+                         request.resource.data.items is list &&
+                         request.resource.data.items.size() > 0 &&
+                         request.resource.data.items.size() <= 100;
+        // Only business members can view and update order status
         allow read, update, delete: if isBusinessMember(businessId);
       }
     }

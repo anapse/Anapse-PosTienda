@@ -16,7 +16,8 @@ import {
   setDoc, 
   updateDoc,
   deleteDoc,
-  onSnapshot 
+  onSnapshot,
+  limit
 } from 'firebase/firestore';
 import { auth, db, googleProvider, handleFirestoreError, OperationType, testConnection } from './config';
 import { Business, BusinessMember, CashShift, UserRole, BusinessStatus } from '../types';
@@ -29,6 +30,7 @@ import {
   getPlanById,
   getDaysRemaining 
 } from '../utils/subscription';
+import { seedBusinessSampleData } from '../utils/sampleData';
 
 interface AuthContextType {
   user: User | null;
@@ -56,12 +58,15 @@ interface AuthContextType {
   refreshBusiness: () => Promise<void>;
   setActiveShift: (shift: CashShift | null) => void;
   canAccess: (requiredRole: UserRole) => boolean;
-  // Super Admin & Plan actions
+  // Super Admin & Account actions
   approveBusiness: (businessId: string, days?: number, planId?: string) => Promise<void>;
   changeBusinessPlan: (businessId: string, planId: string) => Promise<void>;
-  suspendBusiness: (businessId: string) => Promise<void>;
+  suspendBusiness: (businessId: string, reason?: string) => Promise<void>;
   reactivateBusiness: (businessId: string) => Promise<void>;
   extendSubscription: (businessId: string, additionalDays?: number) => Promise<void>;
+  setCustomSubscriptionExpiration: (businessId: string, expiresAtIso: string) => Promise<void>;
+  updateBusinessByAdmin: (businessId: string, data: Partial<Business>) => Promise<void>;
+  createBusinessByAdmin: (data: Partial<Business>) => Promise<Business>;
   deleteBusiness: (businessId: string) => Promise<void>;
 }
 
@@ -135,6 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const isDemo = currentUser.isAnonymous;
 
     if (isDemo) {
+      const now = new Date();
       const demoStore: Business = {
         id: 'demo_store_123',
         name: 'Supermercado de Prueba Anapse',
@@ -155,14 +161,133 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         planName: 'Plan Tienda',
         planPrice: 40000,
         maxProducts: 500,
-        createdAt: new Date().toISOString(),
-        activatedAt: new Date().toISOString(),
-        subscriptionExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        createdAt: new Date(now.getTime() - 10 * 86400000).toISOString(),
+        activatedAt: new Date(now.getTime() - 10 * 86400000).toISOString(),
+        subscriptionExpiresAt: new Date(now.getTime() + 20 * 86400000).toISOString(),
       };
+
+      const sampleStores: Business[] = [
+        demoStore,
+        {
+          id: 'biz_demo_2',
+          name: 'Minimarket El Ahorro Familiar',
+          ownerId: 'user_medellin_1',
+          nit: '901.442.119-4',
+          phone: '3104567890',
+          whatsapp: '573104567890',
+          address: 'Cra 70 #32-15, Laureles',
+          city: 'Medellín',
+          currency: 'COP',
+          slug: 'el-ahorro-familiar',
+          catalogActive: true,
+          receiptFooter: '¡Gracias por apoyar el comercio local!',
+          status: 'ACTIVE',
+          businessType: 'Minimarket / Supermercado',
+          merchantContactName: 'Carlos Mario Restrepo',
+          planId: 'almacen',
+          planName: 'Plan Almacén',
+          planPrice: 60000,
+          maxProducts: 2000,
+          createdAt: new Date(now.getTime() - 15 * 86400000).toISOString(),
+          activatedAt: new Date(now.getTime() - 15 * 86400000).toISOString(),
+          subscriptionExpiresAt: new Date(now.getTime() + 15 * 86400000).toISOString(),
+        },
+        {
+          id: 'biz_demo_3',
+          name: 'Fruver San Antonio Campestre',
+          ownerId: 'user_cali_2',
+          nit: '900.887.321-0',
+          phone: '3157891234',
+          whatsapp: '573157891234',
+          address: 'Calle 5 #23-40, San Antonio',
+          city: 'Cali',
+          currency: 'COP',
+          slug: 'fruver-san-antonio',
+          catalogActive: false,
+          receiptFooter: 'Frutas y verduras frescas del campo.',
+          status: 'PENDING',
+          businessType: 'Fruver (Frutas y Verduras)',
+          merchantContactName: 'Luz Marina Gómez',
+          planId: 'tienda',
+          planName: 'Plan Tienda',
+          planPrice: 40000,
+          maxProducts: 500,
+          requestedAt: new Date(now.getTime() - 1 * 86400000).toISOString(),
+          createdAt: new Date(now.getTime() - 1 * 86400000).toISOString(),
+        },
+        {
+          id: 'biz_demo_4',
+          name: 'Droguería y Farmacia La Rebaja 24H',
+          ownerId: 'user_bquilla_3',
+          nit: '901.332.109-8',
+          phone: '3009876543',
+          whatsapp: '573009876543',
+          address: 'Calle 72 #46-18, El Prado',
+          city: 'Barranquilla',
+          currency: 'COP',
+          slug: 'farmacia-la-rebaja-24h',
+          catalogActive: true,
+          receiptFooter: 'Salud y bienestar a tu alcance.',
+          status: 'SUSPENDED',
+          suspensionReason: 'Mensualidad vencida hace 5 días. Pendiente comprobante Nequi.',
+          adminNotes: 'Contacto el 15-Oct: Prometió transferir antes del viernes.',
+          businessType: 'Droguería / Farmacia',
+          merchantContactName: 'Javier Enrique Blanco',
+          planId: 'comercial',
+          planName: 'Plan Comercial',
+          planPrice: 90000,
+          maxProducts: 999999,
+          createdAt: new Date(now.getTime() - 45 * 86400000).toISOString(),
+          activatedAt: new Date(now.getTime() - 45 * 86400000).toISOString(),
+          subscriptionExpiresAt: new Date(now.getTime() - 5 * 86400000).toISOString(),
+        },
+        {
+          id: 'biz_demo_5',
+          name: 'Panadería y Pastelería Dulce Trigo',
+          ownerId: 'user_bucaramanga_4',
+          nit: '900.654.321-2',
+          phone: '3187654321',
+          whatsapp: '573187654321',
+          address: 'Carrera 27 #34-12, Cabecera',
+          city: 'Bucaramanga',
+          currency: 'COP',
+          slug: 'dulce-trigo-bga',
+          catalogActive: true,
+          receiptFooter: 'El mejor pan recién horneado.',
+          status: 'ACTIVE',
+          businessType: 'Panadería / Pastelería',
+          merchantContactName: 'Marta Cecilia Ortiz',
+          planId: 'tienda',
+          planName: 'Plan Tienda',
+          planPrice: 40000,
+          maxProducts: 500,
+          createdAt: new Date(now.getTime() - 27 * 86400000).toISOString(),
+          activatedAt: new Date(now.getTime() - 27 * 86400000).toISOString(),
+          subscriptionExpiresAt: new Date(now.getTime() + 3 * 86400000).toISOString(), // Vence en 3 días
+        }
+      ];
+
       setBusinesses([demoStore]);
+      setAllBusinesses(sampleStores);
       setCurrentBusiness(demoStore);
       setCurrentRole('owner');
       setLoading(false);
+
+      // Persist demo_store_123 in Firestore and seed sample products if not already seeded
+      (async () => {
+        try {
+          const demoRef = doc(db, 'businesses', 'demo_store_123');
+          await setDoc(demoRef, demoStore, { merge: true });
+
+          const prodsSnap = await getDocs(query(collection(db, 'businesses/demo_store_123/products'), limit(1)));
+          if (prodsSnap.empty) {
+            await seedBusinessSampleData('demo_store_123');
+          }
+        } catch (err) {
+          console.warn('Demo store auto-seed background notice:', err);
+        }
+      })();
+
       return;
     }
 
@@ -253,6 +378,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       active: true,
       createdAt: now.toISOString(),
     });
+
+    try {
+      await seedBusinessSampleData(bizId);
+    } catch (err) {
+      console.warn('Could not auto-seed sample products:', err);
+    }
 
     localStorage.setItem('active_business_id', bizId);
     return adminStore;
@@ -364,119 +495,262 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + days * 24 * 60 * 60 * 1000).toISOString();
 
-    try {
-      const updatePayload: any = {
-        status: 'ACTIVE',
-        activatedAt: now.toISOString(),
-        subscriptionExpiresAt: expiresAt,
-        updatedAt: now.toISOString(),
-      };
+    const updatePayload: any = {
+      status: 'ACTIVE',
+      activatedAt: now.toISOString(),
+      subscriptionExpiresAt: expiresAt,
+      updatedAt: now.toISOString(),
+      suspensionReason: '',
+    };
 
-      if (planId) {
-        const plan = getPlanById(planId);
-        updatePayload.planId = plan.id;
-        updatePayload.planName = plan.name;
-        updatePayload.planPrice = plan.priceCOP;
-        updatePayload.maxProducts = plan.maxProducts;
-      }
+    if (planId) {
+      const plan = getPlanById(planId);
+      updatePayload.planId = plan.id;
+      updatePayload.planName = plan.name;
+      updatePayload.planPrice = plan.priceCOP;
+      updatePayload.maxProducts = plan.maxProducts;
+    }
 
-      await updateDoc(doc(db, 'businesses', businessId), updatePayload);
-      if (currentBusiness?.id === businessId) {
-        await refreshBusiness();
+    setAllBusinesses(prev => prev.map(b => b.id === businessId ? { ...b, ...updatePayload } : b));
+    if (currentBusiness?.id === businessId) {
+      setCurrentBusiness(prev => prev ? { ...prev, ...updatePayload } : null);
+    }
+
+    if (!user?.isAnonymous) {
+      try {
+        await updateDoc(doc(db, 'businesses', businessId), updatePayload);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.UPDATE, `businesses/${businessId}`);
       }
-    } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, `businesses/${businessId}`);
     }
   };
 
   // Change business plan (Admin or Self-Upgrade)
   const changeBusinessPlan = async (businessId: string, planId: string) => {
     const plan = getPlanById(planId);
-    try {
-      await updateDoc(doc(db, 'businesses', businessId), {
-        planId: plan.id,
-        planName: plan.name,
-        planPrice: plan.priceCOP,
-        maxProducts: plan.maxProducts,
-        updatedAt: new Date().toISOString(),
-      });
-      if (currentBusiness?.id === businessId) {
-        await refreshBusiness();
+    const updatePayload = {
+      planId: plan.id,
+      planName: plan.name,
+      planPrice: plan.priceCOP,
+      maxProducts: plan.maxProducts,
+      updatedAt: new Date().toISOString(),
+    };
+
+    setAllBusinesses(prev => prev.map(b => b.id === businessId ? { ...b, ...updatePayload } : b));
+    if (currentBusiness?.id === businessId) {
+      setCurrentBusiness(prev => prev ? { ...prev, ...updatePayload } : null);
+    }
+
+    if (!user?.isAnonymous) {
+      try {
+        await updateDoc(doc(db, 'businesses', businessId), updatePayload);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.UPDATE, `businesses/${businessId}`);
       }
-    } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, `businesses/${businessId}`);
     }
   };
 
-  // Super Admin: Extend subscription by 30 days
+  // Super Admin: Extend subscription by N days
   const extendSubscription = async (businessId: string, additionalDays: number = 30) => {
-    try {
-      const bizDoc = await getDoc(doc(db, 'businesses', businessId));
-      if (!bizDoc.exists()) return;
-      const bData = bizDoc.data() as Business;
-
-      let baseTime = new Date().getTime();
-      if (bData.subscriptionExpiresAt) {
-        const expTime = new Date(bData.subscriptionExpiresAt).getTime();
-        if (expTime > baseTime) {
-          baseTime = expTime; // Add to existing days if not yet expired
-        }
+    const target = allBusinesses.find(b => b.id === businessId) || currentBusiness;
+    let baseTime = new Date().getTime();
+    if (target?.subscriptionExpiresAt) {
+      const expTime = new Date(target.subscriptionExpiresAt).getTime();
+      if (expTime > baseTime) {
+        baseTime = expTime; // Add to existing days if not yet expired
       }
+    }
 
-      const newExpires = new Date(baseTime + additionalDays * 24 * 60 * 60 * 1000).toISOString();
-      await updateDoc(doc(db, 'businesses', businessId), {
-        status: 'ACTIVE',
-        subscriptionExpiresAt: newExpires,
-        updatedAt: new Date().toISOString(),
-      });
-      if (currentBusiness?.id === businessId) {
-        await refreshBusiness();
+    const newExpires = new Date(baseTime + additionalDays * 24 * 60 * 60 * 1000).toISOString();
+    const updatePayload = {
+      status: 'ACTIVE' as BusinessStatus,
+      subscriptionExpiresAt: newExpires,
+      updatedAt: new Date().toISOString(),
+      suspensionReason: '',
+    };
+
+    setAllBusinesses(prev => prev.map(b => b.id === businessId ? { ...b, ...updatePayload } : b));
+    if (currentBusiness?.id === businessId) {
+      setCurrentBusiness(prev => prev ? { ...prev, ...updatePayload } : null);
+    }
+
+    if (!user?.isAnonymous) {
+      try {
+        await updateDoc(doc(db, 'businesses', businessId), updatePayload);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.UPDATE, `businesses/${businessId}`);
       }
-    } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, `businesses/${businessId}`);
     }
   };
 
-  // Super Admin: Suspend store
-  const suspendBusiness = async (businessId: string) => {
-    try {
-      await updateDoc(doc(db, 'businesses', businessId), {
-        status: 'SUSPENDED',
-        updatedAt: new Date().toISOString(),
-      });
-      if (currentBusiness?.id === businessId) {
-        await refreshBusiness();
+  // Super Admin: Set custom exact expiration date
+  const setCustomSubscriptionExpiration = async (businessId: string, expiresAtIso: string) => {
+    const updatePayload = {
+      status: 'ACTIVE' as BusinessStatus,
+      subscriptionExpiresAt: expiresAtIso,
+      updatedAt: new Date().toISOString(),
+      suspensionReason: '',
+    };
+
+    setAllBusinesses(prev => prev.map(b => b.id === businessId ? { ...b, ...updatePayload } : b));
+    if (currentBusiness?.id === businessId) {
+      setCurrentBusiness(prev => prev ? { ...prev, ...updatePayload } : null);
+    }
+
+    if (!user?.isAnonymous) {
+      try {
+        await updateDoc(doc(db, 'businesses', businessId), updatePayload);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.UPDATE, `businesses/${businessId}`);
       }
-    } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, `businesses/${businessId}`);
+    }
+  };
+
+  // Super Admin: Suspend store with reason
+  const suspendBusiness = async (businessId: string, reason?: string) => {
+    const updatePayload = {
+      status: 'SUSPENDED' as BusinessStatus,
+      suspensionReason: reason || 'Suspendido por falta de pago o revisión administrativa',
+      updatedAt: new Date().toISOString(),
+    };
+
+    setAllBusinesses(prev => prev.map(b => b.id === businessId ? { ...b, ...updatePayload } : b));
+    if (currentBusiness?.id === businessId) {
+      setCurrentBusiness(prev => prev ? { ...prev, ...updatePayload } : null);
+    }
+
+    if (!user?.isAnonymous) {
+      try {
+        await updateDoc(doc(db, 'businesses', businessId), updatePayload);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.UPDATE, `businesses/${businessId}`);
+      }
     }
   };
 
   // Super Admin: Reactivate store
   const reactivateBusiness = async (businessId: string) => {
-    try {
-      await updateDoc(doc(db, 'businesses', businessId), {
-        status: 'ACTIVE',
-        updatedAt: new Date().toISOString(),
-      });
-      if (currentBusiness?.id === businessId) {
-        await refreshBusiness();
-      }
-    } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, `businesses/${businessId}`);
+    const now = new Date();
+    // If expired, grant at least 30 days on reactivation
+    const target = allBusinesses.find(b => b.id === businessId);
+    let expiresAt = target?.subscriptionExpiresAt;
+    if (!expiresAt || new Date(expiresAt).getTime() <= now.getTime()) {
+      expiresAt = new Date(now.getTime() + 30 * 86400000).toISOString();
     }
+
+    const updatePayload = {
+      status: 'ACTIVE' as BusinessStatus,
+      subscriptionExpiresAt: expiresAt,
+      suspensionReason: '',
+      updatedAt: now.toISOString(),
+    };
+
+    setAllBusinesses(prev => prev.map(b => b.id === businessId ? { ...b, ...updatePayload } : b));
+    if (currentBusiness?.id === businessId) {
+      setCurrentBusiness(prev => prev ? { ...prev, ...updatePayload } : null);
+    }
+
+    if (!user?.isAnonymous) {
+      try {
+        await updateDoc(doc(db, 'businesses', businessId), updatePayload);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.UPDATE, `businesses/${businessId}`);
+      }
+    }
+  };
+
+  // Super Admin: Update full business account details
+  const updateBusinessByAdmin = async (businessId: string, data: Partial<Business>) => {
+    // Sanitize data: remove any undefined keys and ensure valid status
+    const cleanPayload: Record<string, any> = {};
+    for (const [key, val] of Object.entries(data)) {
+      if (val !== undefined) {
+        cleanPayload[key] = val;
+      }
+    }
+
+    if (!cleanPayload.status) {
+      const existing = allBusinesses.find(b => b.id === businessId) || currentBusiness;
+      cleanPayload.status = existing?.status || 'ACTIVE';
+    }
+
+    cleanPayload.updatedAt = new Date().toISOString();
+
+    setAllBusinesses(prev => prev.map(b => b.id === businessId ? { ...b, ...cleanPayload } : b));
+    if (currentBusiness?.id === businessId) {
+      setCurrentBusiness(prev => prev ? { ...prev, ...cleanPayload } : null);
+    }
+
+    if (!user?.isAnonymous) {
+      try {
+        await updateDoc(doc(db, 'businesses', businessId), cleanPayload);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.UPDATE, `businesses/${businessId}`);
+      }
+    }
+  };
+
+  // Super Admin: Create a new business account directly
+  const createBusinessByAdmin = async (data: Partial<Business>): Promise<Business> => {
+    const bizId = data.id || `biz_${Date.now()}`;
+    const now = new Date().toISOString();
+    const chosenPlan = getPlanById(data.planId || 'tienda');
+    const expiresAt = data.subscriptionExpiresAt || new Date(Date.now() + 30 * 86400000).toISOString();
+
+    const newBiz: Business = {
+      id: bizId,
+      name: data.name || 'Nueva Tienda',
+      ownerId: data.ownerId || (user ? user.uid : 'admin_created'),
+      nit: data.nit || 'Sin NIT',
+      phone: data.phone || '',
+      whatsapp: data.whatsapp || data.phone || '573000000000',
+      address: data.address || '',
+      city: data.city || 'Bogotá',
+      currency: 'COP',
+      slug: data.slug || (data.name ? data.name.toLowerCase().replace(/[^a-z0-9]/g, '-') : `tienda-${bizId.substring(4, 9)}`),
+      catalogActive: data.catalogActive !== undefined ? data.catalogActive : true,
+      receiptFooter: data.receiptFooter || '¡Gracias por su compra!',
+      status: (data.status as BusinessStatus) || 'ACTIVE',
+      businessType: data.businessType || 'Tienda de barrio / Abarrotes',
+      merchantContactName: data.merchantContactName || 'Propietario',
+      planId: chosenPlan.id,
+      planName: chosenPlan.name,
+      planPrice: data.planPrice || chosenPlan.priceCOP,
+      maxProducts: data.maxProducts || chosenPlan.maxProducts,
+      activatedAt: now,
+      subscriptionExpiresAt: expiresAt,
+      adminNotes: data.adminNotes || 'Creado directamente por Super Admin.',
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    setAllBusinesses(prev => [newBiz, ...prev]);
+
+    if (!user?.isAnonymous) {
+      try {
+        await setDoc(doc(db, 'businesses', bizId), newBiz);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.WRITE, `businesses/${bizId}`);
+      }
+    }
+
+    return newBiz;
   };
 
   // Super Admin: Delete store request
   const deleteBusiness = async (businessId: string) => {
-    try {
-      await deleteDoc(doc(db, 'businesses', businessId));
-      setBusinesses(prev => prev.filter(b => b.id !== businessId));
-      if (currentBusiness?.id === businessId) {
-        setCurrentBusiness(null);
+    setAllBusinesses(prev => prev.filter(b => b.id !== businessId));
+    setBusinesses(prev => prev.filter(b => b.id !== businessId));
+    if (currentBusiness?.id === businessId) {
+      setCurrentBusiness(null);
+    }
+
+    if (!user?.isAnonymous) {
+      try {
+        await deleteDoc(doc(db, 'businesses', businessId));
+      } catch (err) {
+        handleFirestoreError(err, OperationType.DELETE, `businesses/${businessId}`);
       }
-    } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `businesses/${businessId}`);
     }
   };
 
@@ -539,6 +813,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         suspendBusiness,
         reactivateBusiness,
         extendSubscription,
+        setCustomSubscriptionExpiration,
+        updateBusinessByAdmin,
+        createBusinessByAdmin,
         deleteBusiness,
       }}
     >

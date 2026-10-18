@@ -1,4 +1,51 @@
 import { Product, Supplier } from '../types';
+import { db } from '../firebase/config';
+import { doc, setDoc } from 'firebase/firestore';
+
+export async function seedBusinessSampleData(businessId: string): Promise<number> {
+  // 1. Add sample suppliers
+  for (let i = 0; i < SAMPLE_SUPPLIERS.length; i++) {
+    const supp = SAMPLE_SUPPLIERS[i];
+    const suppId = supp.nit ? `supp_${supp.nit.replace(/[^a-zA-Z0-9]/g, '')}` : `supp_${i + 1}`;
+    await setDoc(doc(db, `businesses/${businessId}/suppliers`, suppId), {
+      id: suppId,
+      businessId,
+      ...supp,
+      createdAt: new Date().toISOString(),
+    }, { merge: true });
+  }
+
+  // 2. Add sample products
+  for (let i = 0; i < SAMPLE_PRODUCTS.length; i++) {
+    const prod = SAMPLE_PRODUCTS[i];
+    const prodId = prod.barcode ? `prod_${prod.barcode}` : `prod_${i + 1}`;
+    await setDoc(doc(db, `businesses/${businessId}/products`, prodId), {
+      id: prodId,
+      businessId,
+      ...prod,
+      createdAt: new Date().toISOString(),
+    }, { merge: true });
+  }
+
+  // 3. Add sample customer with initial fiado record
+  const custId = `cust_dona_gloria`;
+  await setDoc(doc(db, `businesses/${businessId}/customers`, custId), {
+    id: custId,
+    businessId,
+    name: 'Doña Gloria Ramírez (Vecina Cra 12)',
+    phone: '3145678901',
+    documentType: 'CC',
+    documentNumber: '52.345.678',
+    address: 'Cra 12 # 4-18 Casa 2',
+    neighborhood: 'El Poblado',
+    creditLimit: 150000,
+    currentDebt: 32000,
+    notes: 'Cliente de confianza del barrio. Cancela cada quincena.',
+    createdAt: new Date().toISOString(),
+  }, { merge: true });
+
+  return SAMPLE_PRODUCTS.length;
+}
 
 export const SAMPLE_SUPPLIERS: Omit<Supplier, 'id' | 'businessId' | 'createdAt'>[] = [
   {

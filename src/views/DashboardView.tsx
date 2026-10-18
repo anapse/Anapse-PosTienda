@@ -4,7 +4,7 @@ import { db, handleFirestoreError, OperationType } from '../firebase/config';
 import { collection, query, where, getDocs, onSnapshot, setDoc, doc } from 'firebase/firestore';
 import { Sale, Product, Customer, CashShift } from '../types';
 import { formatCOP } from '../utils/currency';
-import { SAMPLE_PRODUCTS, SAMPLE_SUPPLIERS } from '../utils/sampleData';
+import { seedBusinessSampleData } from '../utils/sampleData';
 import { 
   DollarSign, 
   TrendingUp, 
@@ -150,45 +150,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
     if (!currentBusiness) return;
     setIsSeeding(true);
     try {
-      // 1. Add sample suppliers
-      for (const supp of SAMPLE_SUPPLIERS) {
-        const suppId = `supp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-        await setDoc(doc(db, `businesses/${currentBusiness.id}/suppliers`, suppId), {
-          id: suppId,
-          businessId: currentBusiness.id,
-          ...supp,
-          createdAt: new Date().toISOString(),
-        });
-      }
-
-      // 2. Add sample products
-      for (const prod of SAMPLE_PRODUCTS) {
-        const prodId = `prod_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-        await setDoc(doc(db, `businesses/${currentBusiness.id}/products`, prodId), {
-          id: prodId,
-          businessId: currentBusiness.id,
-          ...prod,
-          createdAt: new Date().toISOString(),
-        });
-      }
-
-      // 3. Add sample customer with initial fiado record
-      const custId = `cust_${Date.now()}`;
-      await setDoc(doc(db, `businesses/${currentBusiness.id}/customers`, custId), {
-        id: custId,
-        businessId: currentBusiness.id,
-        name: 'Doña Gloria Ramírez (Vecina Cra 12)',
-        phone: '3145678901',
-        documentType: 'CC',
-        documentNumber: '52.345.678',
-        address: 'Cra 12 # 4-18 Casa 2',
-        neighborhood: 'El Poblado',
-        creditLimit: 150000,
-        currentDebt: 32000,
-        notes: 'Cliente de confianza del barrio. Cancela cada quincena.',
-        createdAt: new Date().toISOString(),
-      });
-
+      await seedBusinessSampleData(currentBusiness.id);
       alert('¡Catálogo inicial de Colombia y proveedores cargados con éxito!');
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `businesses/${currentBusiness.id}/products`);

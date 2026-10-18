@@ -25,6 +25,9 @@ export interface Business {
   activatedAt?: string;
   requestedAt?: string;
   merchantContactName?: string;
+  suspensionReason?: string;
+  adminNotes?: string;
+  ownerEmail?: string;
   createdAt: string;
   updatedAt?: string;
 }

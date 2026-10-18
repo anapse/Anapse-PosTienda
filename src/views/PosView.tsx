@@ -32,8 +32,10 @@ import {
   Tag,
   ArrowRight,
   RotateCcw,
-  Scale
+  Scale,
+  Sparkles
 } from 'lucide-react';
+import { seedBusinessSampleData } from '../utils/sampleData';
 
 interface PosViewProps {
   onNavigate: (view: string) => void;
@@ -66,9 +68,58 @@ export const PosView: React.FC<PosViewProps> = ({ onNavigate }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastCompletedSale, setLastCompletedSale] = useState<Sale | null>(null);
 
-  // Weighable product prompt modal
   const [weighingProduct, setWeighingProduct] = useState<Product | null>(null);
   const [customWeight, setCustomWeight] = useState<string>('1.0');
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [barcodeInput, setBarcodeInput] = useState('');
+
+  // Shortcut F2 to open modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F2') {
+        e.preventDefault();
+        setShowProductModal(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleBarcodeSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const val = barcodeInput.trim();
+    if (!val) {
+      setShowProductModal(true);
+      return;
+    }
+    const matchBarcode = products.find(p => p.barcode && p.barcode.toLowerCase() === val.toLowerCase());
+    if (matchBarcode) {
+      addToCart(matchBarcode, 1);
+      setBarcodeInput('');
+      return;
+    }
+    const matchName = products.find(p => p.name.toLowerCase() === val.toLowerCase());
+    if (matchName) {
+      addToCart(matchName, 1);
+      setBarcodeInput('');
+      return;
+    }
+    // If not exact match, open selection modal
+    setShowProductModal(true);
+  };
+
+  const handleSeedProducts = async () => {
+    if (!currentBusiness) return;
+    setIsSeeding(true);
+    try {
+      await seedBusinessSampleData(currentBusiness.id);
+    } catch (err) {
+      console.error('Error seeding products:', err);
+      handleFirestoreError(err, OperationType.WRITE, `businesses/${currentBusiness.id}/products`);
+    } finally {
+      setIsSeeding(false);
+    }
+  };
 
   useEffect(() => {
     if (!currentBusiness) return;
@@ -106,11 +157,9 @@ export const PosView: React.FC<PosViewProps> = ({ onNavigate }) => {
     };
   }, [currentBusiness]);
 
-
-
   // Cart operations
-  const addToCart = (product: Product, quantityToAdd: number = 1) => {
-    if (product.allowDecimals && quantityToAdd === 1) {
+  const addToCart = (product: Product, quantityToAdd: number = 1, skipWeightPrompt: boolean = false) => {
+    if (product.allowDecimals && quantityToAdd === 1 && !skipWeightPrompt) {
       // Open weight prompt modal
       setWeighingProduct(product);
       setCustomWeight('1.0');
@@ -386,201 +435,357 @@ export const PosView: React.FC<PosViewProps> = ({ onNavigate }) => {
   };
 
   return (
-    <div className="h-[calc(100vh-5rem)] flex flex-col lg:flex-row gap-4 pb-6">
+    <div className="flex flex-col gap-3 pb-6 w-full max-w-full min-w-0 overflow-x-hidden">
       
-      {/* Left: Product Catalog & Fast Search */}
-      <div className="flex-1 flex flex-col bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
+      {/* Top Controls Bar: Action Button, Quick Barcode Scanner & Customer */}
+      <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 p-3 sm:p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
         
-        {/* Product Selection Button */}
-        <div className="p-4 border-b border-stone-200">
+        {/* Left: Prominent Modal Trigger + Fast Barcode Search */}
+        <div className="flex items-center gap-2.5 flex-1 min-w-[280px]">
           <button 
+            type="button"
             onClick={() => setShowProductModal(true)}
-            className="w-full py-4 bg-emerald-700 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-2 hover:bg-emerald-800 transition"
+            className="py-2.5 px-4 sm:px-5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl font-black text-sm flex items-center justify-center gap-2 transition active:scale-98 shadow-md shrink-0"
+            title="Abrir catálogo para agregar productos (F2)"
           >
-            <Plus className="w-6 h-6" />
+            <Plus className="w-5 h-5 text-emerald-200" />
             <span>Agregar Producto</span>
+            <span className="hidden md:inline-block text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-800/80 text-emerald-200 border border-emerald-600/50">F2</span>
           </button>
-        </div>
 
-        {/* Product Modal */}
-        {showProductModal && (
-          <ProductSelectionModal 
-            products={products} 
-            onClose={() => setShowProductModal(false)}
-            onAddToCart={addToCart}
-          />
-        )}
-
-      </div>
-
-      {/* Right: Cart & Checkout Panel - Responsive with toggle */}
-      <div className={`w-full lg:w-96 bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden flex flex-col ${cart.length === 0 ? 'hidden lg:flex' : 'flex'}`}>
-        
-        {/* Cart Header - Added mobile toggle button */}
-        <div className="p-4 border-b border-stone-200 flex items-center justify-between bg-stone-50">
-          <div className="flex items-center gap-2">
-            <ShoppingCart className="w-5 h-5 text-emerald-700" />
-            <h2 className="font-bold text-stone-900 text-base">Carrito ({cart.length})</h2>
-          </div>
-          {cart.length > 0 && (
-            <div className="flex items-center gap-2">
+          {/* Fast Barcode / Search Box (Enter) */}
+          <form onSubmit={handleBarcodeSubmit} className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-2.5 w-4 h-4 text-stone-400" />
+            <input
+              type="text"
+              value={barcodeInput}
+              onChange={(e) => setBarcodeInput(e.target.value)}
+              placeholder="Escanear código de barras o buscar..."
+              className="w-full pl-9 pr-8 py-2 text-xs sm:text-sm bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-stone-100 rounded-xl focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+            />
+            {barcodeInput && (
               <button
-                onClick={() => setShowProductModal(true)}
-                title="Agregar más productos"
-                className="text-xs bg-emerald-700 text-white font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 hover:bg-emerald-800"
+                type="button"
+                onClick={() => setBarcodeInput('')}
+                className="absolute right-2.5 top-2.5 text-xs text-stone-400 hover:text-stone-600 dark:hover:text-stone-200"
               >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Agregar</span>
-              </button>
-              <button
-                onClick={clearCart}
-                title="Vaciar carrito"
-                className="text-xs text-rose-600 hover:text-rose-800 font-medium flex items-center gap-1"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Vaciar</span>
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Customer Selector */}
-        <div className="p-3 border-b border-stone-200 bg-emerald-50/50">
-          <div className="flex items-center justify-between text-xs mb-1.5">
-            <span className="font-semibold text-stone-700 flex items-center gap-1">
-              <User className="w-3.5 h-3.5 text-emerald-700" />
-              <span>Cliente / Fiado:</span>
-            </span>
-            {selectedCustomer && (
-              <button
-                onClick={() => setSelectedCustomer(null)}
-                className="text-stone-400 hover:text-stone-600"
-              >
-                Cambiar a Mostrador
+                ✕
               </button>
             )}
-          </div>
+          </form>
 
-          <select
-            value={selectedCustomer?.id || ''}
-            onChange={(e) => {
-              const c = customers.find(x => x.id === e.target.value) || null;
-              setSelectedCustomer(c);
-            }}
-            className="w-full bg-white border border-stone-300 rounded-xl px-3 py-2 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-emerald-600"
-          >
-            <option value="">Cliente General (Mostrador)</option>
-            {customers.map(c => (
-              <option key={c.id} value={c.id}>
-                {c.name} {c.currentDebt > 0 ? `(Debe: ${formatCOP(c.currentDebt)})` : ''}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Cart Items List */}
-        <div className="flex-1 p-3 overflow-y-auto divide-y divide-stone-100">
-          {cart.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center p-6 text-stone-400">
-              <ShoppingCart className="w-10 h-10 mb-2 text-stone-300" />
-              <p className="text-sm font-medium text-stone-500">Carrito vacío</p>
-              <p className="text-xs text-stone-400 mt-1">Selecciona productos a la izquierda para agregarlos a la venta.</p>
-            </div>
-          ) : (
-            cart.map((item) => {
-              const itemTotal = (item.product.salePrice * item.quantity) - item.discount;
-              return (
-                <div key={item.product.id} className="py-2.5 flex items-center justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-xs sm:text-sm text-stone-900 dark:text-stone-100 truncate">
-                      {item.product.name}
-                    </p>
-                    <p className="text-[11px] text-stone-500 dark:text-stone-400">
-                      {formatCOP(item.product.salePrice)} / {item.product.unit}
-                    </p>
-                  </div>
-
-                  {/* Quantity controls */}
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => updateQuantity(item.product.id, item.quantity - (item.product.allowDecimals ? 0.25 : 1))}
-                      className="w-7 h-7 rounded-lg bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200 flex items-center justify-center font-bold"
-                    >
-                      <Minus className="w-3.5 h-3.5" />
-                    </button>
-                    
-                    <span className="w-12 text-center text-xs font-bold text-stone-800 dark:text-stone-100">
-                      {formatQuantity(item.quantity, item.product.allowDecimals)}
-                    </span>
-
-                    <button
-                      onClick={() => updateQuantity(item.product.id, item.quantity + (item.product.allowDecimals ? 0.25 : 1))}
-                      className="w-7 h-7 rounded-lg bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200 flex items-center justify-center font-bold"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  <div className="text-right w-20">
-                    <p className="font-bold text-xs sm:text-sm text-stone-900 dark:text-stone-100">
-                      {formatCOP(itemTotal)}
-                    </p>
-                    <button
-                      onClick={() => removeFromCart(item.product.id)}
-                      className="text-stone-300 hover:text-rose-500 transition"
-                      title="Eliminar del carrito"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 inline" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })
+          {products.length === 0 && !loading && (
+            <button
+              type="button"
+              onClick={handleSeedProducts}
+              disabled={isSeeding}
+              className="py-2 px-3 bg-amber-400 hover:bg-amber-300 text-stone-950 rounded-xl font-black text-xs flex items-center gap-1.5 shadow-xs transition active:scale-95 disabled:opacity-50 shrink-0"
+              title="Cargar productos de prueba colombianos"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-emerald-950" />
+              <span>{isSeeding ? 'Cargando...' : 'Cargar Muestra'}</span>
+            </button>
           )}
         </div>
 
-        {/* Cart Totals & Checkout Button */}
-        <div className="p-4 bg-stone-50 border-t border-stone-200 space-y-3">
-          
-          <div className="space-y-1.5 text-xs text-stone-600">
-            <div className="flex justify-between">
-              <span>Subtotal:</span>
-              <span className="font-medium">{formatCOP(subtotal)}</span>
-            </div>
-            
-            {/* General Discount */}
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1 text-stone-600">
-                <Tag className="w-3 h-3 text-emerald-600" /> Descuento:
-              </span>
-              <input
-                type="number"
-                min="0"
-                step="500"
-                placeholder="$ 0"
-                value={generalDiscount === 0 ? '' : generalDiscount}
-                onChange={(e) => setGeneralDiscount(Number(e.target.value) || 0)}
-                className="w-24 text-right px-2 py-0.5 border border-stone-300 rounded text-xs focus:ring-1 focus:ring-emerald-600"
-              />
-            </div>
+        {/* Right: Customer Selection & Cart Actions */}
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+          <div className="flex items-center gap-2 flex-1 sm:flex-initial">
+            <span className="text-xs font-bold text-stone-500 dark:text-stone-400 flex items-center gap-1 whitespace-nowrap">
+              <User className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="hidden sm:inline">Cliente:</span>
+            </span>
+            <select
+              value={selectedCustomer?.id || ''}
+              onChange={(e) => {
+                const c = customers.find(x => x.id === e.target.value) || null;
+                setSelectedCustomer(c);
+              }}
+              className="bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-stone-100 rounded-xl px-2.5 py-1.5 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-600 max-w-[190px] sm:max-w-[220px] truncate"
+            >
+              <option value="">Cliente General (Mostrador)</option>
+              {customers.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.name} {c.currentDebt > 0 ? `(Debe: ${formatCOP(c.currentDebt)})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
 
-            <div className="pt-2 border-t border-stone-200 dark:border-stone-700 flex justify-between items-baseline">
-              <span className="text-sm font-extrabold text-stone-900 dark:text-stone-100 uppercase">Total a Pagar:</span>
-              <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{formatCOP(total)}</span>
-            </div>
+          {cart.length > 0 && (
+            <button
+              type="button"
+              onClick={clearCart}
+              title="Vaciar carrito"
+              className="py-1.5 px-2.5 text-xs text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg font-semibold flex items-center gap-1 transition shrink-0"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Vaciar</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      {cart.length === 0 ? (
+        /* Empty State: Spacious, clean, no cluttered catalog grid */
+        <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 p-8 sm:p-12 shadow-xs flex flex-col items-center justify-center text-center space-y-5 min-h-[460px]">
+          <div className="w-20 h-20 rounded-3xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shadow-inner">
+            <ShoppingCart className="w-10 h-10" />
+          </div>
+
+          <div className="space-y-1.5 max-w-md">
+            <h2 className="text-xl sm:text-2xl font-black text-stone-900 dark:text-stone-100">
+              Caja Lista para Facturar
+            </h2>
+            <p className="text-xs sm:text-sm text-stone-500 dark:text-stone-400">
+              Presiona el botón para abrir el catálogo y seleccionar productos para la venta sin ocupar espacio en pantalla.
+            </p>
           </div>
 
           <button
-            onClick={handleOpenPayment}
-            disabled={cart.length === 0}
-            className="w-full py-3.5 px-4 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold text-base rounded-xl shadow-md transition active:scale-98 flex items-center justify-center gap-2"
+            type="button"
+            onClick={() => setShowProductModal(true)}
+            className="py-3.5 px-6 bg-emerald-700 hover:bg-emerald-600 text-white rounded-2xl font-black text-sm sm:text-base flex items-center gap-2.5 transition active:scale-95 shadow-lg hover:shadow-emerald-700/20"
           >
-            <CreditCard className="w-5 h-5 text-emerald-300" />
-            <span>Cobrar {formatCOP(total)}</span>
-            <ArrowRight className="w-5 h-5" />
+            <Plus className="w-5 h-5 text-emerald-200" />
+            <span>Agregar Producto al Carrito</span>
           </button>
+
+          {/* Quick Context & Shortcuts Indicator */}
+          <div className="pt-6 border-t border-stone-100 dark:border-stone-800 flex flex-wrap items-center justify-center gap-4 text-xs text-stone-500 dark:text-stone-400">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span>{products.length} productos en inventario</span>
+            </span>
+            <span>•</span>
+            <span>Atajo de teclado: <strong>F2</strong></span>
+            {activeShift && (
+              <>
+                <span>•</span>
+                <span>Cajero: <strong>{activeShift.cashierName}</strong></span>
+              </>
+            )}
+          </div>
+
+          {/* If no products in store, offer quick Colombian sample seed */}
+          {products.length === 0 && !loading && (
+            <div className="mt-4 p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 max-w-md space-y-2">
+              <p className="font-bold text-xs text-amber-900 dark:text-amber-200">
+                Tu tienda no tiene productos registrados todavía
+              </p>
+              <button
+                type="button"
+                onClick={handleSeedProducts}
+                disabled={isSeeding}
+                className="py-2 px-4 bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition active:scale-95 inline-flex items-center gap-1.5"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <span>{isSeeding ? 'Cargando muestra...' : '⚡ Cargar Catálogo de Prueba Ahora'}</span>
+              </button>
+            </div>
+          )}
         </div>
-      </div>
+      ) : (
+        /* Active Cart State: Wide Items Table + Checkout Summary */
+        <div className="flex flex-col lg:flex-row gap-4 items-start w-full">
+          
+          {/* Left/Center: Spacious Cart Items Table */}
+          <div className="flex-1 w-full bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 shadow-xs overflow-hidden flex flex-col">
+            
+            {/* Items Header */}
+            <div className="p-3 sm:p-4 border-b border-stone-200 dark:border-stone-800 flex items-center justify-between bg-stone-50/70 dark:bg-stone-800/40">
+              <div className="flex items-center gap-2">
+                <ShoppingCart className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
+                <h3 className="font-bold text-sm sm:text-base text-stone-900 dark:text-stone-100">
+                  Artículos de la Venta ({cart.length})
+                </h3>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowProductModal(true)}
+                className="py-1.5 px-3 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition active:scale-95 shadow-xs"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Agregar Producto</span>
+              </button>
+            </div>
+
+            {/* Items List */}
+            <div className="divide-y divide-stone-100 dark:divide-stone-800 overflow-y-auto max-h-[calc(100vh-16rem)]">
+              {cart.map((item) => {
+                const itemTotal = (item.product.salePrice * item.quantity) - item.discount;
+                return (
+                  <div key={item.product.id} className="p-3 sm:p-4 flex items-center justify-between gap-3 hover:bg-stone-50/50 dark:hover:bg-stone-800/30 transition">
+                    
+                    {/* Product Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-extrabold text-sm sm:text-base text-stone-900 dark:text-white truncate">
+                        {item.product.name}
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+                        <span className="font-bold text-emerald-700 dark:text-emerald-400">
+                          {formatCOP(item.product.salePrice)}
+                        </span>
+                        <span>/ {item.product.unit}</span>
+                        {item.product.category && (
+                          <>
+                            <span>•</span>
+                            <span className="text-[11px] font-medium">{item.product.category}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Quantity Stepper */}
+                    <div className="flex items-center gap-1.5 shrink-0 bg-stone-100 dark:bg-stone-800 p-1 rounded-xl">
+                      <button
+                        type="button"
+                        onClick={() => updateQuantity(item.product.id, item.quantity - (item.product.allowDecimals ? 0.25 : 1))}
+                        className="w-7 h-7 rounded-lg bg-white dark:bg-stone-700 hover:bg-stone-200 dark:hover:bg-stone-600 text-stone-900 dark:text-white flex items-center justify-center font-bold transition active:scale-90 shadow-xs"
+                        aria-label="Disminuir cantidad"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      
+                      <span className="w-12 text-center text-xs font-black text-stone-900 dark:text-white">
+                        {formatQuantity(item.quantity, item.product.allowDecimals)}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => updateQuantity(item.product.id, item.quantity + (item.product.allowDecimals ? 0.25 : 1))}
+                        className="w-7 h-7 rounded-lg bg-white dark:bg-stone-700 hover:bg-stone-200 dark:hover:bg-stone-600 text-stone-900 dark:text-white flex items-center justify-center font-bold transition active:scale-90 shadow-xs"
+                        aria-label="Aumentar cantidad"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    {/* Line Total & Remove */}
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="text-right w-20 sm:w-24">
+                        <p className="font-black text-sm sm:text-base text-stone-900 dark:text-white font-mono">
+                          {formatCOP(itemTotal)}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => removeFromCart(item.product.id)}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-stone-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
+                        title="Eliminar producto de la venta"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Bottom: Sale Notes */}
+            <div className="p-3 border-t border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-800/30">
+              <input
+                type="text"
+                placeholder="Observaciones o notas de la venta (opcional)..."
+                value={saleNotes}
+                onChange={(e) => setSaleNotes(e.target.value)}
+                className="w-full px-3 py-1.5 text-xs bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-xl text-stone-900 dark:text-stone-100 placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+              />
+            </div>
+
+          </div>
+
+          {/* Right: Checkout & Totals Summary Panel */}
+          <div className="w-full lg:w-96 shrink-0 bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 shadow-sm p-4 sm:p-5 space-y-4">
+            
+            <div className="flex items-center justify-between pb-3 border-b border-stone-200 dark:border-stone-800">
+              <h3 className="font-bold text-sm text-stone-900 dark:text-stone-100">
+                Resumen de Venta
+              </h3>
+              <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                {selectedCustomer ? selectedCustomer.name : 'Cliente Mostrador'}
+              </span>
+            </div>
+
+            {/* Totals Calculation */}
+            <div className="space-y-2 text-xs sm:text-sm text-stone-600 dark:text-stone-300">
+              <div className="flex justify-between">
+                <span>Subtotal ({cart.length} líneas):</span>
+                <span className="font-bold text-stone-900 dark:text-stone-100 font-mono">
+                  {formatCOP(subtotal)}
+                </span>
+              </div>
+
+              {/* General Discount */}
+              <div className="flex items-center justify-between pt-1">
+                <span className="flex items-center gap-1 font-medium">
+                  <Tag className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>Descuento General:</span>
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="500"
+                  placeholder="$ 0"
+                  value={generalDiscount === 0 ? '' : generalDiscount}
+                  onChange={(e) => setGeneralDiscount(Number(e.target.value) || 0)}
+                  className="w-28 text-right px-2.5 py-1 bg-stone-50 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 text-stone-900 dark:text-stone-100 rounded-xl text-xs font-bold focus:ring-1 focus:ring-emerald-600"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-stone-200 dark:border-stone-700 flex justify-between items-baseline">
+                <span className="text-sm font-black text-stone-900 dark:text-stone-100 uppercase tracking-tight">
+                  Total a Pagar:
+                </span>
+                <span className="text-2xl sm:text-3xl font-black text-emerald-700 dark:text-emerald-400 font-mono">
+                  {formatCOP(total)}
+                </span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-2 pt-2">
+              <button
+                type="button"
+                onClick={handleOpenPayment}
+                disabled={cart.length === 0}
+                className="w-full py-4 px-4 bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-base rounded-2xl shadow-lg hover:shadow-emerald-700/20 transition active:scale-98 flex items-center justify-center gap-2"
+              >
+                <CreditCard className="w-5 h-5 text-emerald-200" />
+                <span>Cobrar {formatCOP(total)}</span>
+                <ArrowRight className="w-5 h-5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowProductModal(true)}
+                className="w-full py-2.5 px-4 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5"
+              >
+                <Plus className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span>+ Agregar más productos</span>
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+      )}
+
+      {/* Product Selection Modal */}
+      {showProductModal && (
+        <ProductSelectionModal 
+          products={products} 
+          onClose={() => setShowProductModal(false)}
+          onAddToCart={addToCart}
+          onSeedSampleData={handleSeedProducts}
+          cartItems={cart}
+          cartTotal={total}
+        />
+      )}
 
       {/* Modal: Colombian Weight Prompt for decimal items */}
       {weighingProduct && (
