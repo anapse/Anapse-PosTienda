@@ -1,4 +1,0 @@
-// Creating an empty directory requires writing a file inside it.
-// I will create a dummy file to ensure the directory exists if needed, but vite might create it automatically when building.
-// Actually, I can't create directory without writing a file. 
-// Let's create a placeholder icon for now.
